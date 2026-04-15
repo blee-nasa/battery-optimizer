@@ -1,38 +1,36 @@
 # Battery Optimizer
 
+A web-based calculator for optimizing the construction of solid state batteries. Engineers and researchers enter powder component parameters and receive calculated outputs - primarily specific capacity (mAh/g), utilization, and mass loading - to guide material selection decisions.
 
+## Status
 
-## Getting started
+Early development - proof of concept phase.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## How it works
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **Frontend:** React + Vite single-page app
+- **Calculation engine:** C code compiled to WebAssembly (WASM) via Emscripten, running entirely client-side
+- **Deployment:** GitLab Pages
 
-## Add your files
+The app is structured as a shell that calls into a WASM module. The calculation logic (ported from FORTRAN to C by the project POC) is compiled separately and loaded at runtime.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Repository structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.larc.nasa.gov/blee31/battery-optimizer.git
-git branch -M main
-git push -uf origin main
+battery-optimizer/
+  wiki/          # Project wiki (submodule)
 ```
 
-## Integrate with your tools
+More structure will be added as the project is scaffolded.
 
-* [Set up project integrations](https://gitlab.larc.nasa.gov/blee31/battery-optimizer/-/settings/integrations)
+## Development requirements
 
-## Collaborate with your team
+- Node.js 18+
+- Docker (used for the Emscripten WASM build - no native emsdk install needed)
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Documentation
 
-## Test and Deploy
+See the [project wiki](https://gitlab.larc.nasa.gov/blee31/battery-optimizer/-/wikis/home) for the full initial plan.
 
 Use the built-in continuous integration in GitLab.
 
