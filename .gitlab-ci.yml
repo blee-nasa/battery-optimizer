@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  NODE_VERSION: "18.20.8"
+  NODE_VERSION: "20.19.0"
 
 build-frontend:
   stage: build
