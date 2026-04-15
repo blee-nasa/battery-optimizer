@@ -28,7 +28,6 @@ export const App = () => {
         throw new Error('Molecular weight must be a positive number')
       }
       const capacity = await calculate(nVal, mwVal)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
       setResult({
         n: nVal,
         molecularWeight: mwVal,
