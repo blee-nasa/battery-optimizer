@@ -18,15 +18,31 @@ The app is structured as a shell that calls into a WASM module. The calculation 
 
 ```
 battery-optimizer/
-  wiki/          # Project wiki (submodule)
+  .github/               # Copilot instructions
+  .gitlab-ci.yml         # GitLab CI (WASM build + React build + Pages deploy)
+  src/                   # React frontend source
+  wasm/                  # C source and build script for WASM module
+  public/                # Static assets; compiled WASM output lands here
+  wiki/                  # Project wiki (submodule)
 ```
-
-More structure will be added as the project is scaffolded.
 
 ## Development requirements
 
 - Node.js 18+
 - Docker (used for the Emscripten WASM build - no native emsdk install needed)
+
+## Local development
+
+Build the WASM module (requires Docker):
+```sh
+bash wasm/build.sh
+```
+
+Run the frontend dev server:
+```sh
+npm install
+npm run dev
+```
 
 ## Documentation
 

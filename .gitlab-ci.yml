@@ -1,0 +1,44 @@
+stages:
+  - build
+  - deploy
+
+build-wasm:
+  stage: build
+  image: emscripten/emsdk:latest
+  script:
+    - mkdir -p public
+    - >-
+      emcc wasm/calculator.c
+      -o public/calculator.js
+      -s EXPORTED_FUNCTIONS="['_calculate']"
+      -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']"
+      -s MODULARIZE=1
+      -s EXPORT_NAME="createCalculatorModule"
+      -s ALLOW_MEMORY_GROWTH=1
+      -O2
+  artifacts:
+    paths:
+      - public/calculator.js
+      - public/calculator.wasm
+
+build-frontend:
+  stage: build
+  image: node:18
+  needs:
+    - build-wasm
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - dist
+
+pages:
+  stage: deploy
+  needs:
+    - build-frontend
+  script:
+    - mv dist public
+  artifacts:
+    paths:
+      - public

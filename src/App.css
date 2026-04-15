@@ -1,0 +1,65 @@
+.app {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 0 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 4px;
+}
+
+button {
+  font-size: 16px;
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #1a1a2e;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+button:hover {
+  background: #16213e;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.result table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.result td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.result td:first-child {
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+}
+
+.error {
+  color: #e74c3c;
+  margin-top: 16px;
+}
