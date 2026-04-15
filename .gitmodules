@@ -1,3 +1,3 @@
 [submodule "wiki"]
 	path = wiki
-	url = https://gitlab.larc.nasa.gov/blee31/battery-optimizer.wiki.git
+	url = https://github.com/blee-nasa/battery-optimizer.wiki.git
