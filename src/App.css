@@ -10,6 +10,30 @@ h1 {
   margin-bottom: 4px;
 }
 
+.inputs {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.inputs label {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inputs input {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 160px;
+}
+
 button {
   font-size: 16px;
   padding: 10px 24px;
@@ -21,13 +45,13 @@ button {
   margin-top: 16px;
 }
 
-button:hover {
+button:hover :not(:disabled) {
   background: #16213e;
 }
 
 button:disabled {
   opacity: 0.6;
-  cursor: not-allowed;
+  cursor: wait;
 }
 
 .result {

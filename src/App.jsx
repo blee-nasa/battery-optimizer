@@ -1,7 +1,16 @@
 import { useState } from 'react'
+import { calculate } from './utils/wasm'
 import './App.css'
 
-function App() {
+const DEFAULT_RESULT = {
+  n: '',
+  molecularWeight: '',
+  capacity: '',
+}
+
+export const App = () => {
+  const [n, setN] = useState('1')
+  const [molecularWeight, setMolecularWeight] = useState('151.91')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -10,29 +19,19 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      // calculator.js is an Emscripten glue file in public/, served as a
-      // static asset. Load it at runtime rather than bundling it.
-      if (!window.createCalculatorModule) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src = import.meta.env.BASE_URL + 'calculator.js'
-          script.onload = resolve
-          script.onerror = () => reject(new Error('Failed to load calculator.js'))
-          document.head.appendChild(script)
-        })
+      const nVal = parseInt(n, 10)
+      const mwVal = parseFloat(molecularWeight)
+      if (isNaN(nVal) || nVal <= 0 || !Number.isInteger(nVal)) {
+        throw new Error('Electrons transferred must be a positive integer')
       }
-      const module = await window.createCalculatorModule()
-      const n = 1.0
-      const molecularWeight = 151.91 // LiFePO4
-      const capacity = module.ccall(
-        'calculate',
-        'number',
-        ['number', 'number'],
-        [n, molecularWeight]
-      )
+      if (isNaN(mwVal) || mwVal <= 0) {
+        throw new Error('Molecular weight must be a positive number')
+      }
+      const capacity = await calculate(nVal, mwVal)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       setResult({
-        n,
-        molecularWeight,
+        n: nVal,
+        molecularWeight: mwVal,
         capacity: capacity.toFixed(2),
       })
     } catch (err) {
@@ -42,20 +41,34 @@ function App() {
     }
   }
 
+  const displayResult = result || DEFAULT_RESULT;
+
   return (
     <div className="app">
       <h1>Battery Optimizer</h1>
       <p>Proof of concept - React + WebAssembly (C via Emscripten)</p>
 
-      <button onClick={runCalculation} disabled={loading}>
-        {loading ? 'Calculating...' : 'Calculate Specific Capacity'}
+      <div className="inputs">
+        <label>
+          Electrons transferred (n)
+          <input type="number" step="1" min="1" value={n} onChange={(e) => setN(e.target.value)} />
+        </label>
+        <label>
+          Molecular weight (g/mol)
+          <input type="number" step="any" value={molecularWeight} onChange={(e) => setMolecularWeight(e.target.value)} />
+        </label>
+      </div>
+
+      <button onClick={runCalculation} disabled={loading} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', justifySelf: 'center' }}>
+        <span style={{ opacity: loading ? 1 : 0, position: 'absolute' }}>Calculating...</span>
+        <span style={{ opacity: loading ? 0 : 1 }}>Calculate Specific Capacity</span>
       </button>
 
-      {error && <p className="error">Error: {error}</p>}
+      <p className="error" style={{ opacity: error ? 1 : 0 }}>Error: {error}</p>
 
-      {result && (
-        <div className="result">
-          <h2>Result</h2>
+      <div className="result" style={{ opacity: loading ? 0.7 : 1 }}>
+        <div style={{ opacity: result ? 1 : 0 }}>
+          <h2>{loading ? 'Calculating ...' : 'Result'}</h2>
           <table>
             <tbody>
               <tr>
@@ -64,25 +77,23 @@ function App() {
               </tr>
               <tr>
                 <td>Electrons transferred (n)</td>
-                <td>{result.n}</td>
+                <td>{loading ? 'Calculating ...' : displayResult.n}</td>
               </tr>
               <tr>
                 <td>Molecular weight</td>
-                <td>{result.molecularWeight} g/mol</td>
+                <td>{loading ? 'Calculating ...' : `${displayResult.molecularWeight} g/mol`}</td>
               </tr>
               <tr>
                 <td>Specific capacity</td>
-                <td>{result.capacity} mAh/g</td>
+                <td>{loading ? 'Calculating ...' : `${displayResult.capacity} mAh/g`}</td>
               </tr>
             </tbody>
           </table>
-          <p className="note">
+          <p className="note" style={{ opacity: loading ? 0 : 1 }}>
             Calculated via WASM: C = (n * F) / (M * 3.6)
           </p>
         </div>
-      )}
+      </div>
     </div>
   )
 }
-
-export default App
