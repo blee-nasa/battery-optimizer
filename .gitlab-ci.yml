@@ -4,7 +4,7 @@ stages:
 variables:
   NODE_VERSION: "20.19.0"
 
-pages:
+deploy-pages:
   stage: deploy
   script:
     - curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz | tar -xJ
@@ -12,7 +12,7 @@ pages:
     - node --version
     - npm install
     - npm run build
-    - mv dist public
-  artifacts:
-    paths:
-      - public
+  pages:
+    publish: dist
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
