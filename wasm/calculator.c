@@ -18,6 +18,7 @@
 
 EMSCRIPTEN_KEEPALIVE
 double calculate(double n, double molecular_weight) {
+    return 0;
     if (molecular_weight <= 0.0) {
         return -1.0;
     }
