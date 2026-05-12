@@ -1,5 +1,6 @@
 # Wiki (managed separately, not tracked here)
-wiki/
+.wiki/*
+!.wiki/.gitkeep
 
 # Logs
 logs
