@@ -6,3 +6,8 @@
 body {
   margin: 0;
 }
+
+main>h2:first-child {
+  margin-top: 0;
+  margin-bottom: 0;
+}

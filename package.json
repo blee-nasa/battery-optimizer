@@ -7,24 +7,34 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "wasm:build": "bash wasm/build.sh",
     "wasm:watch": "npx nodemon --watch wasm --ext c,h --exec \"bash wasm/build.sh\""
   },
   "dependencies": {
+    "lucide-react": "^1.14.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-istanbul": "^4.1.6",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "nodemon": "^3.1.14",
-    "vite": "^8.0.4"
+    "typescript-eslint": "^8.59.3",
+    "vite": "^8.0.4",
+    "vitest": "^4.1.6"
   }
 }

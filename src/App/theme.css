@@ -1,0 +1,13 @@
+:root {
+  --color-primary: #1a1a2e;
+  --color-primary-hover: #16213e;
+  --color-text: #ccc;
+  --color-text-inverted: #1a1a2e;
+  --color-bg-inverted: #e0e0e0;
+  --color-bg-hover: rgba(255, 255, 255, 0.1);
+  --color-border: #333;
+  --color-border-light: #ccc;
+  --color-border-subtle: #eee;
+  --color-error: #e74c3c;
+  --color-muted: #888;
+}
