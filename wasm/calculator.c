@@ -16,11 +16,36 @@
 
 #define FARADAY 96485.0
 
+typedef struct {
+    double am_capacity;
+    double overall_cathode_capacity;
+    double material_utilization[8];
+    double overall_cathode_utilization;
+} CalculationResult;
+
 EMSCRIPTEN_KEEPALIVE
-double calculate(double n, double molecular_weight) {
-    return 0;
-    if (molecular_weight <= 0.0) {
-        return -1.0;
+void calculate(double n, double molecular_weight, CalculationResult* out_result) {
+    if (out_result == 0) {
+        return;
     }
-    return (n * FARADAY) / (molecular_weight * 3.6);
+
+    if (molecular_weight <= 0.0) {
+        out_result->am_capacity = -1.0;
+        out_result->overall_cathode_capacity = -1.0;
+        out_result->overall_cathode_utilization = 0.0;
+        for (int i = 0; i < 8; i++) {
+            out_result->material_utilization[i] = 0.0;
+        }
+        return;
+    }
+
+    const double capacity = (n * FARADAY) / (molecular_weight * 3.6);
+    out_result->am_capacity = capacity;
+    out_result->overall_cathode_capacity = capacity;
+    out_result->overall_cathode_utilization = 100.0;
+
+    for (int i = 0; i < 8; i++) {
+        out_result->material_utilization[i] = 0.0;
+    }
+    out_result->material_utilization[0] = 100.0;
 }

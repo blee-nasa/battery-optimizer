@@ -24,7 +24,12 @@ describe('CapacityCalculatorConcept', () => {
   })
 
   it('displays result after successful calculation', async () => {
-    mockCalculate.mockResolvedValue(176.68)
+    mockCalculate.mockResolvedValue({
+      am_capacity: 176.68,
+      overall_cathode_capacity: 176.68,
+      material_utilization: [100, 0, 0, 0, 0, 0, 0, 0],
+      overall_cathode_utilization: 100,
+    })
     render(<CapacityCalculatorConcept />)
 
     fireEvent.click(screen.getByText('Calculate Specific Capacity'))

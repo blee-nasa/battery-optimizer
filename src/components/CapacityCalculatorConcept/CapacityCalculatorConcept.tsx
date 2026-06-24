@@ -33,11 +33,11 @@ export const CapacityCalculatorConcept = () => {
       if (isNaN(mwVal) || mwVal <= 0) {
         throw new Error('Molecular weight must be a positive number')
       }
-      const capacity = await calculate(nVal, mwVal)
+      const calc = await calculate(nVal, mwVal)
       setResult({
         n: nVal,
         molecularWeight: mwVal,
-        capacity: capacity.toFixed(2),
+        capacity: calc.am_capacity.toFixed(2),
       })
     } catch (err) {
       setError((err as Error).message)

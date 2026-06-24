@@ -39,8 +39,8 @@ export const OptimizerView = () => {
       for (const comp of selectedCathode.components) {
         const material = materials.find((m) => m.id === comp.materialId)
         if (material?.valency != null) {
-          const capacity = await calculate(material.valency, material.molecularWeight)
-          results.push({ materialName: material.name, capacity: capacity.toFixed(2) })
+          const calc = await calculate(material.valency, material.molecularWeight)
+          results.push({ materialName: material.name, capacity: calc.am_capacity.toFixed(2) })
         }
       }
       setCalcResults(results)
