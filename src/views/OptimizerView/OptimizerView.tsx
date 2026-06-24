@@ -6,9 +6,16 @@ import { useCathodes, useMaterials } from '@stores'
 import { calculate } from '@utils'
 import styles from './OptimizerView.module.css'
 
-interface CalcResult {
+interface MaterialCalcResult {
   materialName: string
-  capacity: string
+  amCapacity: string
+  utilization: string
+}
+
+interface CalcResults {
+  materials: MaterialCalcResult[]
+  overallCapacity: string
+  overallUtilization: string
 }
 
 export const OptimizerView = () => {
@@ -23,11 +30,18 @@ export const OptimizerView = () => {
   const navigate = useNavigate()
 
   const [nyi, setNyi] = useState(false)
-  const [calcResults, setCalcResults] = useState<CalcResult[] | null>(null)
+  const [calcResults, setCalcResults] = useState<CalcResults | null>(null)
   const [calcLoading, setCalcLoading] = useState(false)
   const [calcError, setCalcError] = useState<string | null>(null)
 
   const selectedCathode = cathodes.find((c) => c.id === selectedCathodeId)
+
+  const handleCathodeChange = (id: string) => {
+    setSelectedCathodeId(id)
+    setCalcResults(null)
+    setCalcError(null)
+    setNyi(false)
+  }
 
   const handleCalculate = async () => {
     if (!selectedCathode) return
@@ -35,15 +49,25 @@ export const OptimizerView = () => {
     setCalcError(null)
     setNyi(false)
     try {
-      const results: CalcResult[] = []
+      const materialResults: MaterialCalcResult[] = []
+      let lastResult = null
       for (const comp of selectedCathode.components) {
         const material = materials.find((m) => m.id === comp.materialId)
         if (material?.valency != null) {
           const calc = await calculate(material.valency, material.molecularWeight)
-          results.push({ materialName: material.name, capacity: calc.am_capacity.toFixed(2) })
+          lastResult = calc
+          materialResults.push({
+            materialName: material.name,
+            amCapacity: calc.am_capacity.toFixed(2),
+            utilization: calc.material_utilization[0].toFixed(1),
+          })
         }
       }
-      setCalcResults(results)
+      setCalcResults({
+        materials: materialResults,
+        overallCapacity: lastResult ? lastResult.overall_cathode_capacity.toFixed(2) : '—',
+        overallUtilization: lastResult ? lastResult.overall_cathode_utilization.toFixed(1) : '—',
+      })
     } catch (err) {
       setCalcError((err as Error).message)
     } finally {
@@ -69,7 +93,7 @@ export const OptimizerView = () => {
           label="Cathode"
           id="cathode-select"
           value={selectedCathodeId}
-          onChange={(e) => setSelectedCathodeId(e.target.value)}
+          onChange={(e) => handleCathodeChange(e.target.value)}
         >
           {cathodes.map((c) => (
             <option key={c.id} value={c.id}>
@@ -154,23 +178,34 @@ export const OptimizerView = () => {
           <p className={styles.error}>Error: {calcError}</p>
         )}
         {calcResults && !calcError && (
-          calcResults.length > 0 ? (
-            <table className={styles.resultsTable}>
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Specific Capacity (mAh/g)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calcResults.map((r, i) => (
-                  <tr key={i}>
-                    <td>{r.materialName}</td>
-                    <td>{r.capacity}</td>
+          calcResults.materials.length > 0 ? (
+            <>
+              <table className={styles.resultsTable}>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>AM Capacity (mAh/g)</th>
+                    <th>Utilization (%)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {calcResults.materials.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.materialName}</td>
+                      <td>{r.amCapacity}</td>
+                      <td>{r.utilization}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td><strong>Overall cathode</strong></td>
+                    <td>{calcResults.overallCapacity}</td>
+                    <td>{calcResults.overallUtilization}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </>
           ) : (
             <p className={styles.placeholder}>
               No active materials with valency data found in this cathode.
