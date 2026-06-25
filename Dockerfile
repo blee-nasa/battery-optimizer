@@ -3,7 +3,7 @@ FROM oven/bun:latest
 WORKDIR /app
 
 # Copy manifests first to leverage layer caching
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock bun.lockb* ./
 
 RUN bun install
 
