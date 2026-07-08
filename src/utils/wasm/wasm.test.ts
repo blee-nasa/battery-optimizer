@@ -8,12 +8,33 @@ function mockScriptInjection(onAppend: (script: Partial<HTMLScriptElement>) => v
   return mockScript
 }
 
+const CATHODE_BYTES = 904
+const RESULT_BYTES = 88
+
+const sampleMaterial = {
+  name: 'LiFePO4',
+  electronicConductivity: 1e-9,
+  liIonConductivity: 1e-5,
+  grainSize: 1.0,
+  molecularWeight: 157.76,
+  density: 3.6,
+  reductionPotential: 3.4,
+}
+
 function createMockModule() {
-  const HEAPF64 = new Float64Array(256)
-  const _malloc = vi.fn().mockReturnValue(16)
+  const buffer = new ArrayBuffer(4096)
+  const HEAPU8 = new Uint8Array(buffer)
+  const HEAP32 = new Int32Array(buffer)
+  const HEAPF64 = new Float64Array(buffer)
+  let nextPtr = 16
+  const _malloc = vi.fn((size: number) => {
+    const ptr = nextPtr
+    nextPtr += size
+    return ptr
+  })
   const _free = vi.fn()
   const ccall = vi.fn((_name, _returnType, _argTypes, args) => {
-    const resultPtr = Number(args[2])
+    const resultPtr = Number(args[1])
     const offset = resultPtr / Float64Array.BYTES_PER_ELEMENT
     HEAPF64[offset] = 123.45
     HEAPF64[offset + 1] = 120.0
@@ -21,7 +42,7 @@ function createMockModule() {
     HEAPF64[offset + 10] = 75.0
   })
 
-  return { HEAPF64, _malloc, _free, ccall }
+  return { HEAPU8, HEAP32, HEAPF64, _malloc, _free, ccall }
 }
 
 describe('wasm util', () => {
@@ -36,17 +57,19 @@ describe('wasm util', () => {
     const module = createMockModule()
     window.createCalculatorModule = vi.fn().mockResolvedValue(module)
 
-    const result = await calculate(2, 151.91)
+    const result = await calculate([sampleMaterial])
 
     expect(window.createCalculatorModule).toHaveBeenCalledTimes(1)
-    expect(module._malloc).toHaveBeenCalledWith(88)
+    expect(module._malloc).toHaveBeenNthCalledWith(1, CATHODE_BYTES)
+    expect(module._malloc).toHaveBeenNthCalledWith(2, RESULT_BYTES)
     expect(module.ccall).toHaveBeenCalledWith(
       'calculate',
       null,
-      ['number', 'number', 'number'],
-      [2, 151.91, 16]
+      ['number', 'number'],
+      [16, 16 + CATHODE_BYTES]
     )
-    expect(module._free).toHaveBeenCalledWith(16)
+    expect(module._free).toHaveBeenNthCalledWith(1, 16)
+    expect(module._free).toHaveBeenNthCalledWith(2, 16 + CATHODE_BYTES)
     expect(result).toEqual({
       am_capacity: 123.45,
       overall_cathode_capacity: 120,
@@ -55,13 +78,49 @@ describe('wasm util', () => {
     })
   })
 
+  it('writes the cathode struct (N_mat, name, and properties) into wasm memory', async () => {
+    const { calculate } = await import('./wasm')
+    const module = createMockModule()
+    window.createCalculatorModule = vi.fn().mockResolvedValue(module)
+
+    await calculate([sampleMaterial])
+
+    const cathodePtr = 16
+    expect(module.HEAP32[cathodePtr / 4]).toBe(1)
+
+    const matPtr = cathodePtr + 8
+    const name = new TextDecoder()
+      .decode(module.HEAPU8.subarray(matPtr, matPtr + 64))
+      .replace(/\0.*$/, '')
+    expect(name).toBe('LiFePO4')
+
+    const doubleOffset = (matPtr + 64) / 8
+    expect(module.HEAPF64[doubleOffset]).toBe(sampleMaterial.electronicConductivity)
+    expect(module.HEAPF64[doubleOffset + 1]).toBe(sampleMaterial.liIonConductivity)
+    expect(module.HEAPF64[doubleOffset + 2]).toBe(sampleMaterial.grainSize)
+    expect(module.HEAPF64[doubleOffset + 3]).toBe(sampleMaterial.molecularWeight)
+    expect(module.HEAPF64[doubleOffset + 4]).toBe(sampleMaterial.density)
+    expect(module.HEAPF64[doubleOffset + 5]).toBe(sampleMaterial.reductionPotential)
+  })
+
+  it('rejects cathodes with no materials or more than 8 materials', async () => {
+    const { calculate } = await import('./wasm')
+    const module = createMockModule()
+    window.createCalculatorModule = vi.fn().mockResolvedValue(module)
+
+    await expect(calculate([])).rejects.toThrow('Cathode must have between 1 and 8 materials')
+    await expect(calculate(new Array(9).fill(sampleMaterial))).rejects.toThrow(
+      'Cathode must have between 1 and 8 materials'
+    )
+  })
+
   it('reuses module on subsequent calls', async () => {
     const { calculate } = await import('./wasm')
     const module = createMockModule()
     window.createCalculatorModule = vi.fn().mockResolvedValue(module)
 
-    await calculate(2, 151.91)
-    await calculate(3, 200)
+    await calculate([sampleMaterial])
+    await calculate([sampleMaterial])
     expect(window.createCalculatorModule).toHaveBeenCalledTimes(1)
     expect(module.ccall).toHaveBeenCalledTimes(2)
   })
@@ -74,7 +133,7 @@ describe('wasm util', () => {
     })
 
     const { calculate } = await import('./wasm')
-    const result = await calculate(2, 151.91)
+    const result = await calculate([sampleMaterial])
 
     expect(document.createElement).toHaveBeenCalledWith('script')
     expect(mockScript.src).toContain('calculator.js')
@@ -87,6 +146,6 @@ describe('wasm util', () => {
     })
 
     const { calculate } = await import('./wasm')
-    await expect(calculate(2, 151.91)).rejects.toThrow('Failed to load calculator.js')
+    await expect(calculate([sampleMaterial])).rejects.toThrow('Failed to load calculator.js')
   })
 })

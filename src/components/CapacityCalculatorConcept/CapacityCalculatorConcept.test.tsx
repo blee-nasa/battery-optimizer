@@ -37,7 +37,17 @@ describe('CapacityCalculatorConcept', () => {
     await waitFor(() => {
       expect(screen.getByText('176.68 mAh/g')).toBeInTheDocument()
     })
-    expect(mockCalculate).toHaveBeenCalledWith(1, 151.91)
+    expect(mockCalculate).toHaveBeenCalledWith([
+      {
+        name: 'Sample Active Material',
+        electronicConductivity: 0,
+        liIonConductivity: 0,
+        grainSize: 0,
+        molecularWeight: 151.91,
+        density: 0,
+        reductionPotential: 0,
+      },
+    ])
   })
 
   it('shows error for invalid electron input', async () => {

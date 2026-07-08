@@ -49,24 +49,35 @@ export const OptimizerView = () => {
     setCalcError(null)
     setNyi(false)
     try {
-      const materialResults: MaterialCalcResult[] = []
-      let lastResult = null
-      for (const comp of selectedCathode.components) {
-        const material = materials.find((m) => m.id === comp.materialId)
-        if (material?.valency != null) {
-          const calc = await calculate(material.valency, material.molecularWeight)
-          lastResult = calc
-          materialResults.push({
-            materialName: material.name,
-            amCapacity: calc.am_capacity.toFixed(2),
-            utilization: calc.material_utilization[0].toFixed(1),
-          })
-        }
+      const componentMaterials = selectedCathode.components
+        .map((comp) => materials.find((m) => m.id === comp.materialId))
+        .filter((m): m is NonNullable<typeof m> => m != null)
+
+      if (!componentMaterials.some((m) => m.valency != null)) {
+        setCalcResults({ materials: [], overallCapacity: '—', overallUtilization: '—' })
+        return
       }
+
+      const result = await calculate(
+        componentMaterials.map((material) => ({
+          name: material.name,
+          electronicConductivity: material.eConductivity,
+          liIonConductivity: material.liConductivity,
+          grainSize: material.grainSize,
+          molecularWeight: material.molecularWeight,
+          density: material.density,
+          reductionPotential: material.reductionPotential ?? 0,
+        }))
+      )
+
       setCalcResults({
-        materials: materialResults,
-        overallCapacity: lastResult ? lastResult.overall_cathode_capacity.toFixed(2) : '—',
-        overallUtilization: lastResult ? lastResult.overall_cathode_utilization.toFixed(1) : '—',
+        materials: componentMaterials.map((material, i) => ({
+          materialName: material.name,
+          amCapacity: material.valency != null ? result.am_capacity.toFixed(2) : '—',
+          utilization: result.material_utilization[i].toFixed(1),
+        })),
+        overallCapacity: result.overall_cathode_capacity.toFixed(2),
+        overallUtilization: result.overall_cathode_utilization.toFixed(1),
       })
     } catch (err) {
       setCalcError((err as Error).message)

@@ -33,7 +33,17 @@ export const CapacityCalculatorConcept = () => {
       if (isNaN(mwVal) || mwVal <= 0) {
         throw new Error('Molecular weight must be a positive number')
       }
-      const calc = await calculate(nVal, mwVal)
+      const calc = await calculate([
+        {
+          name: 'Sample Active Material',
+          electronicConductivity: 0,
+          liIonConductivity: 0,
+          grainSize: 0,
+          molecularWeight: mwVal,
+          density: 0,
+          reductionPotential: 0,
+        },
+      ])
       setResult({
         n: nVal,
         molecularWeight: mwVal,
