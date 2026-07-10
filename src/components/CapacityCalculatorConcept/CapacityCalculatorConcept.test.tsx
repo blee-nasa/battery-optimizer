@@ -46,6 +46,8 @@ describe('CapacityCalculatorConcept', () => {
         molecularWeight: 151.91,
         density: 0,
         reductionPotential: 0,
+        valency: 0,
+        massRatio: 100,
       },
     ])
   })

@@ -42,6 +42,8 @@ export const CapacityCalculatorConcept = () => {
           molecularWeight: mwVal,
           density: 0,
           reductionPotential: 0,
+          valency: 0,
+          massRatio: 100,
         },
       ])
       setResult({

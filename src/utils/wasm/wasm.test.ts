@@ -8,7 +8,8 @@ function mockScriptInjection(onAppend: (script: Partial<HTMLScriptElement>) => v
   return mockScript
 }
 
-const CATHODE_BYTES = 904
+// 8 (header) + 8 * 120 (Mat[8], each char[64] + 7 doubles) + 8 * 8 (mass_ratio[8])
+const CATHODE_BYTES = 1032
 const RESULT_BYTES = 88
 
 const sampleMaterial = {
@@ -19,6 +20,8 @@ const sampleMaterial = {
   molecularWeight: 157.76,
   density: 3.6,
   reductionPotential: 3.4,
+  valency: 1,
+  massRatio: 60,
 }
 
 function createMockModule() {
@@ -101,6 +104,11 @@ describe('wasm util', () => {
     expect(module.HEAPF64[doubleOffset + 3]).toBe(sampleMaterial.molecularWeight)
     expect(module.HEAPF64[doubleOffset + 4]).toBe(sampleMaterial.density)
     expect(module.HEAPF64[doubleOffset + 5]).toBe(sampleMaterial.reductionPotential)
+    expect(module.HEAPF64[doubleOffset + 6]).toBe(sampleMaterial.valency)
+
+    // mass_ratio[8] follows Mat[8]: header (8) + 8 materials * 120 bytes
+    const massRatioBase = cathodePtr + 8 + 8 * 120
+    expect(module.HEAPF64[massRatioBase / 8]).toBe(sampleMaterial.massRatio)
   })
 
   it('rejects cathodes with no materials or more than 8 materials', async () => {

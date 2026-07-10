@@ -50,16 +50,19 @@ export const OptimizerView = () => {
     setNyi(false)
     try {
       const componentMaterials = selectedCathode.components
-        .map((comp) => materials.find((m) => m.id === comp.materialId))
+        .map((comp) => {
+          const material = materials.find((m) => m.id === comp.materialId)
+          return material ? { material, massPercent: comp.massPercent } : null
+        })
         .filter((m): m is NonNullable<typeof m> => m != null)
 
-      if (!componentMaterials.some((m) => m.valency != null)) {
+      if (!componentMaterials.some(({ material }) => material.valency != null)) {
         setCalcResults({ materials: [], overallCapacity: '—', overallUtilization: '—' })
         return
       }
 
       const result = await calculate(
-        componentMaterials.map((material) => ({
+        componentMaterials.map(({ material, massPercent }) => ({
           name: material.name,
           electronicConductivity: material.eConductivity,
           liIonConductivity: material.liConductivity,
@@ -67,11 +70,13 @@ export const OptimizerView = () => {
           molecularWeight: material.molecularWeight,
           density: material.density,
           reductionPotential: material.reductionPotential ?? 0,
+          valency: material.valency ?? 0,
+          massRatio: massPercent,
         }))
       )
 
       setCalcResults({
-        materials: componentMaterials.map((material, i) => ({
+        materials: componentMaterials.map(({ material }, i) => ({
           materialName: material.name,
           amCapacity: material.valency != null ? result.am_capacity.toFixed(2) : '—',
           utilization: result.material_utilization[i].toFixed(1),

@@ -15,6 +15,8 @@ export interface CathodeMaterialInput {
   molecularWeight: number
   density: number
   reductionPotential: number
+  valency: number
+  massRatio: number
 }
 
 export interface CalculationResult {
@@ -30,13 +32,15 @@ const RESULT_BYTES = RESULT_DOUBLE_COUNT * Float64Array.BYTES_PER_ELEMENT
 
 // Mirrors the current `type_Material`/`type_Cathode` layout in wasm/calculator.c:
 //   typedef struct { char name[64]; double electronic_conductivity; double li_ion_conductivity;
-//     double grain_size; double molecular_weight; double density; double reduction_potential; } type_Material;
-//   typedef struct { int N_mat; type_Material Mat[8]; } type_Cathode;
+//     double grain_size; double molecular_weight; double density; double reduction_potential;
+//     double valency; } type_Material;
+//   typedef struct { int N_mat; type_Material Mat[8]; double mass_ratio[8]; } type_Cathode;
 const NAME_BYTES = 64
-const MATERIAL_DOUBLE_COUNT = 6
+const MATERIAL_DOUBLE_COUNT = 7
 const MATERIAL_BYTES = NAME_BYTES + MATERIAL_DOUBLE_COUNT * Float64Array.BYTES_PER_ELEMENT
 const CATHODE_HEADER_BYTES = 8 // int32 N_mat + 4 bytes padding to align Mat[] to 8 bytes
-const CATHODE_BYTES = CATHODE_HEADER_BYTES + MATERIAL_SLOTS * MATERIAL_BYTES
+const CATHODE_BYTES =
+  CATHODE_HEADER_BYTES + MATERIAL_SLOTS * MATERIAL_BYTES + MATERIAL_SLOTS * Float64Array.BYTES_PER_ELEMENT
 
 declare global {
   interface Window {
@@ -75,6 +79,7 @@ function writeCathode(
   module.HEAP32[cathodePtr / 4] = materials.length
 
   const encoder = new TextEncoder()
+  const massRatioBase = cathodePtr + CATHODE_HEADER_BYTES + MATERIAL_SLOTS * MATERIAL_BYTES
   materials.forEach((material, i) => {
     const matPtr = cathodePtr + CATHODE_HEADER_BYTES + i * MATERIAL_BYTES
     const nameBytes = encoder.encode(material.name).slice(0, NAME_BYTES - 1)
@@ -87,6 +92,9 @@ function writeCathode(
     module.HEAPF64[doubleOffset + 3] = material.molecularWeight
     module.HEAPF64[doubleOffset + 4] = material.density
     module.HEAPF64[doubleOffset + 5] = material.reductionPotential
+    module.HEAPF64[doubleOffset + 6] = material.valency
+
+    module.HEAPF64[massRatioBase / Float64Array.BYTES_PER_ELEMENT + i] = material.massRatio
   })
 }
 
