@@ -10,11 +10,13 @@ typedef struct {
     double molecular_weight;
     double density;
     double reduction_potential;
+    double valency;
 } type_Material;
 
 typedef struct {
     int N_mat;
     type_Material Mat[8];
+    double mass_ratio[8];
 } type_Cathode;
 
 typedef struct {
