@@ -1,9 +1,14 @@
-node_modules
-coverage
+**/node_modules
+**/coverage
+**/dist
 .git
 .gitignore
 .github
 .wiki
+.env
+fly.toml
+Dockerfile.dev
+compose.yaml
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

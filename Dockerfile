@@ -1,17 +1,16 @@
-FROM oven/bun:latest
-
+# Production image: build the web app with Bun, serve the static output with nginx
+FROM oven/bun:1 AS build
 WORKDIR /app
 
-# Copy manifests first to leverage layer caching
-COPY package.json bun.lock bun.lockb* ./
+# Manifests first for layer caching
+COPY package.json bun.lock ./
+COPY apps/web/package.json apps/web/
+RUN bun install --frozen-lockfile
 
-RUN bun install
-
-# src/ is expected to be mounted at runtime for hot reload
-# The remaining source files are copied so the container is self-contained
-# when no volume is mounted (e.g. CI builds)
 COPY . .
+RUN bun run --cwd apps/web build
 
-EXPOSE 47293
-
-CMD ["bun", "run", "dev"]
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 80

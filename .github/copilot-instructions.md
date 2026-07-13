@@ -9,19 +9,26 @@ A web-based calculator for optimizing solid state battery construction. Engineer
 - **Frontend:** React + Vite (single-page app)
 - **Calculation engine:** C code compiled to WebAssembly (WASM) via Emscripten
 - **Build environment:** Docker using `emscripten/emsdk` image - no native emsdk install
-- **Deployment:** GitLab Pages (static hosting, no backend)
+- **Deployment:** Fly.io static hosting (nginx, no backend) at cathcal.fly.dev, deployed by GitHub Actions on push to `main`
 
 The frontend is a shell that loads and calls a WASM module. The WASM module is authored separately by the project POC (porting FORTRAN calculation logic to C). The interface contract between the shell and the WASM module is a key design artifact.
 
 ## Repository Structure
 
+Bun monorepo; the web app lives in `apps/web`. The version is tracked only in the root `package.json`.
+
 ```
 battery-optimizer/
-  .github/               # Copilot instructions, CI config
+  .github/               # Copilot instructions, deploy workflow
   wiki/                  # Project wiki (git submodule)
-  src/                   # React frontend source (to be scaffolded)
-  wasm/                  # C source and build scripts for WASM module (to be scaffolded)
-  public/                # Static assets; compiled WASM output lands here
+  apps/web/              # React frontend (Vite)
+    src/                 # React source
+    wasm/                # C source and build scripts for WASM module
+    public/              # Static assets; compiled WASM output lands here
+  Dockerfile             # Production image (Bun build -> nginx)
+  Dockerfile.dev         # Dev image used by compose.yaml
+  fly.toml               # Fly.io config (app: cathcal)
+  package.json           # Workspaces, convenience scripts, canonical version
 ```
 
 ## Build and Development
@@ -31,10 +38,10 @@ WASM build (via Docker):
 docker run --rm -v $(pwd)/wasm:/src emscripten/emsdk emcc calculator.c -o /src/out/calculator.js -s EXPORTED_FUNCTIONS="['_calculate']" -s MODULARIZE=1
 ```
 
-Frontend dev server:
+Frontend dev server (from the repo root):
 ```sh
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## Key Domain Concepts
