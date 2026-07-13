@@ -18,8 +18,8 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   emscripten/emsdk \
   emcc /src/calculator.c \
     -o /out/calculator.js \
-    -s EXPORTED_FUNCTIONS="['_calculate']" \
-    -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
+    -s EXPORTED_FUNCTIONS="['_calculate','_malloc','_free']" \
+    -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPU8','HEAP32','HEAPF64']" \
     -s MODULARIZE=1 \
     -s EXPORT_NAME="createCalculatorModule" \
     -s ALLOW_MEMORY_GROWTH=1 \

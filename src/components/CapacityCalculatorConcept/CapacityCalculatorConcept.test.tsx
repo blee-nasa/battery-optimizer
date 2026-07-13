@@ -24,7 +24,12 @@ describe('CapacityCalculatorConcept', () => {
   })
 
   it('displays result after successful calculation', async () => {
-    mockCalculate.mockResolvedValue(176.68)
+    mockCalculate.mockResolvedValue({
+      am_capacity: 176.68,
+      overall_cathode_capacity: 176.68,
+      material_utilization: [100, 0, 0, 0, 0, 0, 0, 0],
+      overall_cathode_utilization: 100,
+    })
     render(<CapacityCalculatorConcept />)
 
     fireEvent.click(screen.getByText('Calculate Specific Capacity'))
@@ -32,7 +37,19 @@ describe('CapacityCalculatorConcept', () => {
     await waitFor(() => {
       expect(screen.getByText('176.68 mAh/g')).toBeInTheDocument()
     })
-    expect(mockCalculate).toHaveBeenCalledWith(1, 151.91)
+    expect(mockCalculate).toHaveBeenCalledWith([
+      {
+        name: 'Sample Active Material',
+        electronicConductivity: 0,
+        liIonConductivity: 0,
+        grainSize: 0,
+        molecularWeight: 151.91,
+        density: 0,
+        reductionPotential: 0,
+        valency: 0,
+        massRatio: 100,
+      },
+    ])
   })
 
   it('shows error for invalid electron input', async () => {

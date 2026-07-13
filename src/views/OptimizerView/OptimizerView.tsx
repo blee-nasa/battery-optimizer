@@ -3,7 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Pencil } from 'lucide-react'
 import { Button, PieChart, PIE_COLORS, contrastText, Select } from '@components'
 import { useCathodes, useMaterials } from '@stores'
+import { calculate } from '@utils'
 import styles from './OptimizerView.module.css'
+
+interface MaterialCalcResult {
+  materialName: string
+  amCapacity: string
+  utilization: string
+}
+
+interface CalcResults {
+  materials: MaterialCalcResult[]
+  overallCapacity: string
+  overallUtilization: string
+}
 
 export const OptimizerView = () => {
   const { cathodes } = useCathodes()
@@ -17,11 +30,71 @@ export const OptimizerView = () => {
   const navigate = useNavigate()
 
   const [nyi, setNyi] = useState(false)
+  const [calcResults, setCalcResults] = useState<CalcResults | null>(null)
+  const [calcLoading, setCalcLoading] = useState(false)
+  const [calcError, setCalcError] = useState<string | null>(null)
 
   const selectedCathode = cathodes.find((c) => c.id === selectedCathodeId)
 
-  const handleCalculate = () => {
+  const handleCathodeChange = (id: string) => {
+    setSelectedCathodeId(id)
+    setCalcResults(null)
+    setCalcError(null)
+    setNyi(false)
+  }
+
+  const handleCalculate = async () => {
+    if (!selectedCathode) return
+    setCalcLoading(true)
+    setCalcError(null)
+    setNyi(false)
+    try {
+      const componentMaterials = selectedCathode.components
+        .map((comp) => {
+          const material = materials.find((m) => m.id === comp.materialId)
+          return material ? { material, massPercent: comp.massPercent } : null
+        })
+        .filter((m): m is NonNullable<typeof m> => m != null)
+
+      if (!componentMaterials.some(({ material }) => material.valency != null)) {
+        setCalcResults({ materials: [], overallCapacity: '—', overallUtilization: '—' })
+        return
+      }
+
+      const result = await calculate(
+        componentMaterials.map(({ material, massPercent }) => ({
+          name: material.name,
+          electronicConductivity: material.eConductivity,
+          liIonConductivity: material.liConductivity,
+          grainSize: material.grainSize,
+          molecularWeight: material.molecularWeight,
+          density: material.density,
+          reductionPotential: material.reductionPotential ?? 0,
+          valency: material.valency ?? 0,
+          massRatio: massPercent,
+        }))
+      )
+
+      setCalcResults({
+        materials: componentMaterials.map(({ material }, i) => ({
+          materialName: material.name,
+          amCapacity: material.valency != null ? result.am_capacity.toFixed(2) : '—',
+          utilization: result.material_utilization[i].toFixed(1),
+        })),
+        overallCapacity: result.overall_cathode_capacity.toFixed(2),
+        overallUtilization: result.overall_cathode_utilization.toFixed(1),
+      })
+    } catch (err) {
+      setCalcError((err as Error).message)
+    } finally {
+      setCalcLoading(false)
+    }
+  }
+
+  const handleOptimize = () => {
     setNyi(true)
+    setCalcResults(null)
+    setCalcError(null)
   }
 
   const resolveName = (materialId: string) =>
@@ -36,7 +109,7 @@ export const OptimizerView = () => {
           label="Cathode"
           id="cathode-select"
           value={selectedCathodeId}
-          onChange={(e) => setSelectedCathodeId(e.target.value)}
+          onChange={(e) => handleCathodeChange(e.target.value)}
         >
           {cathodes.map((c) => (
             <option key={c.id} value={c.id}>
@@ -47,8 +120,15 @@ export const OptimizerView = () => {
 
         <Button
           variant="primary"
-          disabled={!selectedCathode}
+          disabled={!selectedCathode || calcLoading}
           onClick={handleCalculate}
+        >
+          {calcLoading ? 'Calculating…' : 'Calculate'}
+        </Button>
+
+        <Button
+          disabled={!selectedCathode}
+          onClick={handleOptimize}
         >
           Optimize
         </Button>
@@ -110,13 +190,52 @@ export const OptimizerView = () => {
 
       <div className={styles.results}>
         <h3>Results</h3>
-        {nyi ? (
+        {calcError && (
+          <p className={styles.error}>Error: {calcError}</p>
+        )}
+        {calcResults && !calcError && (
+          calcResults.materials.length > 0 ? (
+            <>
+              <table className={styles.resultsTable}>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>AM Capacity (mAh/g)</th>
+                    <th>Utilization (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calcResults.materials.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.materialName}</td>
+                      <td>{r.amCapacity}</td>
+                      <td>{r.utilization}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td><strong>Overall cathode</strong></td>
+                    <td>{calcResults.overallCapacity}</td>
+                    <td>{calcResults.overallUtilization}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </>
+          ) : (
+            <p className={styles.placeholder}>
+              No active materials with valency data found in this cathode.
+            </p>
+          )
+        )}
+        {nyi && !calcResults && !calcError && (
           <p className={styles.nyi}>
-            Optimization is not yet implemented. The WASM module integration is pending.
+            Optimization is not yet implemented.
           </p>
-        ) : (
+        )}
+        {!calcResults && !calcError && !nyi && (
           <p className={styles.placeholder}>
-            Select a cathode and click Optimize to see results.
+            Select a cathode and click Calculate to see results.
           </p>
         )}
       </div>
