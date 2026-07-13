@@ -2,7 +2,7 @@ services:
   app:
     build: .
     ports:
-      - "${HOST_PORT:-3000}:3000"
+      - "${HOST_PORT:-47293}:47293"
     volumes:
       - ./src:/app/src
       - ./public:/app/public

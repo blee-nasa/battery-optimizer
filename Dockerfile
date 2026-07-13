@@ -12,6 +12,6 @@ RUN bun install
 # when no volume is mounted (e.g. CI builds)
 COPY . .
 
-EXPOSE 3000
+EXPOSE 47293
 
 CMD ["bun", "run", "dev"]
