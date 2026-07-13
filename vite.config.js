@@ -24,7 +24,7 @@ export default defineConfig({
   server: {
     // In Docker, bind to all interfaces so port mapping (host:container) works.
     host: '0.0.0.0',
-    port: 3000,
+    port: 47293,
     watch: {
       // polling is needed for hot reload on mounted volumes (Docker on Windows/WSL)
       usePolling: true,
