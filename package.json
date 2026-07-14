@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"npm run wasm:watch\"",
     "build": "vite build",
     "lint": "eslint .",
     "test": "vitest",
@@ -14,6 +14,7 @@
     "wasm:watch": "npx nodemon --watch wasm --ext c,h --exec \"bash wasm/build.sh\""
   },
   "dependencies": {
+    "concurrently": "^10.0.3",
     "lucide-react": "^1.14.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
