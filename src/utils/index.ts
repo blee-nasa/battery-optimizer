@@ -1,2 +1,2 @@
-export { calculate } from './wasm/wasm'
-export type { CalculationResult } from './wasm/wasm'
+export { calculate, optimize } from './wasm/wasm'
+export type { CalculationResult, OptimizeResult } from './wasm/wasm'

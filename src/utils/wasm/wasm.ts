@@ -19,6 +19,11 @@ export interface CathodeMaterialInput {
   massRatio: number
 }
 
+export interface OptimizeResult {
+  optimizedMassRatios: number[]
+  calculationResult: CalculationResult
+}
+
 export interface CalculationResult {
   am_capacity: number
   overall_cathode_capacity: number
@@ -98,6 +103,59 @@ function writeCathode(
   })
 }
 
+function readCalculationResult(module: CalculatorModule, resultPtr: number): CalculationResult {
+  const offset = resultPtr / Float64Array.BYTES_PER_ELEMENT
+  return {
+    am_capacity: module.HEAPF64[offset],
+    overall_cathode_capacity: module.HEAPF64[offset + 1],
+    material_utilization: [
+      module.HEAPF64[offset + 2],
+      module.HEAPF64[offset + 3],
+      module.HEAPF64[offset + 4],
+      module.HEAPF64[offset + 5],
+      module.HEAPF64[offset + 6],
+      module.HEAPF64[offset + 7],
+      module.HEAPF64[offset + 8],
+      module.HEAPF64[offset + 9],
+    ],
+    overall_cathode_utilization: module.HEAPF64[offset + 2 + MATERIAL_SLOTS],
+  }
+}
+
+export async function optimize(materials: CathodeMaterialInput[]): Promise<OptimizeResult> {
+  const module = await loadCalculatorModule()
+
+  const cathodeInPtr = module._malloc(CATHODE_BYTES)
+  const cathodeOutPtr = module._malloc(CATHODE_BYTES)
+  const resultPtr = module._malloc(RESULT_BYTES)
+  try {
+    writeCathode(module, cathodeInPtr, materials)
+    // Initialize cathode_out from cathode_in so optimizer can modify in place
+    module.HEAPU8.copyWithin(cathodeOutPtr, cathodeInPtr, cathodeInPtr + CATHODE_BYTES)
+
+    module.ccall(
+      'optimizer',
+      null,
+      ['number', 'number', 'number'],
+      [cathodeInPtr, cathodeOutPtr, resultPtr]
+    )
+
+    const massRatioBase = cathodeOutPtr + CATHODE_HEADER_BYTES + MATERIAL_SLOTS * MATERIAL_BYTES
+    const optimizedMassRatios = materials.map(
+      (_, i) => module.HEAPF64[massRatioBase / Float64Array.BYTES_PER_ELEMENT + i]
+    )
+
+    return {
+      optimizedMassRatios,
+      calculationResult: readCalculationResult(module, resultPtr),
+    }
+  } finally {
+    module._free(cathodeInPtr)
+    module._free(cathodeOutPtr)
+    module._free(resultPtr)
+  }
+}
+
 export async function calculate(materials: CathodeMaterialInput[]): Promise<CalculationResult> {
   const module = await loadCalculatorModule()
 
@@ -113,22 +171,7 @@ export async function calculate(materials: CathodeMaterialInput[]): Promise<Calc
       [cathodePtr, resultPtr]
     )
 
-    const offset = resultPtr / Float64Array.BYTES_PER_ELEMENT
-    return {
-      am_capacity: module.HEAPF64[offset],
-      overall_cathode_capacity: module.HEAPF64[offset + 1],
-      material_utilization: [
-        module.HEAPF64[offset + 2],
-        module.HEAPF64[offset + 3],
-        module.HEAPF64[offset + 4],
-        module.HEAPF64[offset + 5],
-        module.HEAPF64[offset + 6],
-        module.HEAPF64[offset + 7],
-        module.HEAPF64[offset + 8],
-        module.HEAPF64[offset + 9],
-      ],
-      overall_cathode_utilization: module.HEAPF64[offset + 2 + MATERIAL_SLOTS],
-    }
+    return readCalculationResult(module, resultPtr)
   } finally {
     module._free(cathodePtr)
     module._free(resultPtr)

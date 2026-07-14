@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Pencil } from 'lucide-react'
 import { Button, PieChart, PIE_COLORS, contrastText, Select } from '@components'
 import { useCathodes, useMaterials } from '@stores'
-import { calculate } from '@utils'
+import { calculate, optimize } from '@utils'
 import styles from './OptimizerView.module.css'
 
 interface MaterialCalcResult {
@@ -16,6 +16,7 @@ interface CalcResults {
   materials: MaterialCalcResult[]
   overallCapacity: string
   overallUtilization: string
+  optimizedMassRatios?: number[]
 }
 
 export const OptimizerView = () => {
@@ -29,7 +30,6 @@ export const OptimizerView = () => {
   const [selectedCathodeId, setSelectedCathodeId] = useState(defaultId)
   const navigate = useNavigate()
 
-  const [nyi, setNyi] = useState(false)
   const [calcResults, setCalcResults] = useState<CalcResults | null>(null)
   const [calcLoading, setCalcLoading] = useState(false)
   const [calcError, setCalcError] = useState<string | null>(null)
@@ -40,14 +40,12 @@ export const OptimizerView = () => {
     setSelectedCathodeId(id)
     setCalcResults(null)
     setCalcError(null)
-    setNyi(false)
   }
 
   const handleCalculate = async () => {
     if (!selectedCathode) return
     setCalcLoading(true)
     setCalcError(null)
-    setNyi(false)
     try {
       const componentMaterials = selectedCathode.components
         .map((comp) => {
@@ -91,10 +89,50 @@ export const OptimizerView = () => {
     }
   }
 
-  const handleOptimize = () => {
-    setNyi(true)
-    setCalcResults(null)
+  const handleOptimize = async () => {
+    if (!selectedCathode) return
+    setCalcLoading(true)
     setCalcError(null)
+    setCalcResults(null)
+    try {
+      const componentMaterials = selectedCathode.components
+        .map((comp) => {
+          const material = materials.find((m) => m.id === comp.materialId)
+          return material ? { material, massPercent: comp.massPercent } : null
+        })
+        .filter((m): m is NonNullable<typeof m> => m != null)
+
+      const result = await optimize(
+        componentMaterials.map(({ material, massPercent }) => ({
+          name: material.name,
+          electronicConductivity: material.eConductivity,
+          liIonConductivity: material.liConductivity,
+          grainSize: material.grainSize,
+          molecularWeight: material.molecularWeight,
+          density: material.density,
+          reductionPotential: material.reductionPotential ?? 0,
+          valency: material.valency ?? 0,
+          massRatio: massPercent,
+        }))
+      )
+
+      setCalcResults({
+        materials: componentMaterials.map(({ material }, i) => ({
+          materialName: material.name,
+          amCapacity: material.valency != null
+            ? result.calculationResult.am_capacity.toFixed(2)
+            : '—',
+          utilization: result.calculationResult.material_utilization[i].toFixed(1),
+        })),
+        overallCapacity: result.calculationResult.overall_cathode_capacity.toFixed(2),
+        overallUtilization: result.calculationResult.overall_cathode_utilization.toFixed(1),
+        optimizedMassRatios: result.optimizedMassRatios,
+      })
+    } catch (err) {
+      setCalcError((err as Error).message)
+    } finally {
+      setCalcLoading(false)
+    }
   }
 
   const resolveName = (materialId: string) =>
@@ -127,10 +165,10 @@ export const OptimizerView = () => {
         </Button>
 
         <Button
-          disabled={!selectedCathode}
+          disabled={!selectedCathode || calcLoading}
           onClick={handleOptimize}
         >
-          Optimize
+          {calcLoading ? 'Optimizing…' : 'Optimize'}
         </Button>
 
         <Button
@@ -202,6 +240,7 @@ export const OptimizerView = () => {
                     <th>Material</th>
                     <th>AM Capacity (mAh/g)</th>
                     <th>Utilization (%)</th>
+                    {calcResults.optimizedMassRatios && <th>Optimized Mass %</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -210,6 +249,9 @@ export const OptimizerView = () => {
                       <td>{r.materialName}</td>
                       <td>{r.amCapacity}</td>
                       <td>{r.utilization}</td>
+                      {calcResults.optimizedMassRatios && (
+                        <td>{calcResults.optimizedMassRatios[i].toFixed(4)}</td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -218,6 +260,7 @@ export const OptimizerView = () => {
                     <td><strong>Overall cathode</strong></td>
                     <td>{calcResults.overallCapacity}</td>
                     <td>{calcResults.overallUtilization}</td>
+                    {calcResults.optimizedMassRatios && <td>—</td>}
                   </tr>
                 </tfoot>
               </table>
@@ -228,14 +271,10 @@ export const OptimizerView = () => {
             </p>
           )
         )}
-        {nyi && !calcResults && !calcError && (
-          <p className={styles.nyi}>
-            Optimization is not yet implemented.
-          </p>
-        )}
-        {!calcResults && !calcError && !nyi && (
+
+        {!calcResults && !calcError && (
           <p className={styles.placeholder}>
-            Select a cathode and click Calculate to see results.
+            Select a cathode and click Calculate or Optimize to see results.
           </p>
         )}
       </div>
