@@ -45,7 +45,7 @@ void optimizer(type_Cathode Cathode_in, type_Cathode* Cathode_out, CalculationRe
     Cathode_out->mass_ratio[1] -= 1.0;
     Cathode_out->mass_ratio[2] += 1.0;
 
-    calculator(Cathode_in, out_result);
+    calculate(Cathode_in, out_result);
     CF = collect_cathode(tau);  // Cost Function calculation (internal only)
 
 //    print_res(Cathode_in.N_mat, out_result); // remove in the web version
