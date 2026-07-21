@@ -1,66 +1,15 @@
 /***************************
  *                         *
- * Initialization routines *
+ * Optimization routines   *
  *                         *
  ***************************/
 
-// Set wCathode->Mat[i].Npart from Cathode.mass_ratio[i]
-
-void mass_to_particles(type_Cathode Cathode, type_work_Cathode* wCathode)
-{
-int i, i_max, N_mat, N_min, N_part[8];
-double D, D_max, V_tot, M_tot, Part_mult;
-double D_of[8], V_of[8], M_of[8], M_ratio[8], density[8];
-double V1_of[8], M1_of[8];
-
-   N_mat = Cathode.N_mat;
-   for (i=0; i<8; i++) N_part[i]=0; 
-
-// Select the largest particle size
-   D_max = 0.0; i_max = 0;
-   for (i=0; i<N_mat; i++) {
-     M_ratio[i] = Cathode.mass_ratio[i];
-     density[i] = Cathode.Mat[i].density;
-     D = Cathode.Mat[i].grain_size;
-     D_of[i] = D;
-     V1_of[i] = PI/6.0 *D*D*D;           // Volume of one particle 
-     M1_of[i] = V1_of[i]*density[i];     // Mass of one particle
-     if(D > D_max) { D_max=D; i_max=i; }
-   } // for (int i = 0; i < 8; i++)
-
-// Assume system contains only MIN_PARTICLES particle of the largest material type.
-// Calculate the particles number of the other materials.
-
-   M_tot = MIN_PARTICLES*M1_of[i_max]/M_ratio[i_max]; 
-   // Total mass assuming MIN_PARTICLES of the largest particles.
-
-   N_min = MIN_PARTICLES;
-   for (i=0; i<N_mat; i++) {
-     N_part[i] = round(M_ratio[i]*M_tot/M1_of[i]);
-     if(N_part[i] < N_min) N_min=N_part[i];
-
-//     printf("N_part[%d]= %d\n", i, N_part[i]);
-
-   } // for (int i = 0; i < 8; i++)
- 
-   Part_mult = 1.0; 
-   if(N_min < MIN_PARTICLES) Part_mult=1.0*MIN_PARTICLES/N_min;
-
-//   printf("N_min= %d,  N_mult= %lf\n", N_min, Part_mult);
-
-   for (int i = 0; i < N_mat; i++) {
-     wCathode->Mat[i+1].Npart = round(Part_mult*N_part[i]);
-
-//     printf("Cathode.mass_ratio[%d]= %lf  ", i,Cathode.mass_ratio[i]);
-//     printf("wCathode->Mat[%d].Npart= %d\n", i+1,wCathode->Mat[i+1].Npart);
-
-   } // for (int i = 0; i < 8; i++)
-
-} // void mass_to_particles() 
-
 type_tau init_tau(void)
 {
+ double CostSum;
  type_tau tau_inp;
+ int i;
+
    tau_inp.AM_load = 0.0;
    tau_inp.AM_util = 0.0;
    tau_inp.C_util = 0.0;
@@ -69,339 +18,470 @@ type_tau init_tau(void)
    tau_inp.Cap_AM = 0.0;
    tau_inp.Cap_sys = 1.0;
 
+   CostSum = 0.0;
+   CostF_max[0] = tau_inp.all_util;
+   CostF_max[1] = tau_inp.C_util;
+   CostF_max[2] = tau_inp.SE_util;
+   CostF_max[3] = 0.0;
+   CostF_max[4] = tau_inp.AM_util;
+   CostF_max[5] = 0.0;
+   CostF_max[6] = tau_inp.Cap_AM;
+   CostF_max[7] = tau_inp.Cap_sys;
+
+   for(i=0; i<8; i++) CostSum+=CostF_max[i];
+   if(CostSum > 1.e-10) {
+    for(i=0; i<8; i++) CostF_max[i] /= CostSum;
+   }
+
+   CF_max = 0.0;
+   for(i=0; i<8; i++) CF_max += CostF_max[i];
+   CF_eps = 0.0001*CF_max;
+   CF_min_glb = CF_max + CF_eps;
+
+//   srand((unsigned int)time(NULL));
+    srand(1739);
+
    return(tau_inp);
 } // init_tau(void)
 
-type_Cathode init_Cathode(void)
+void set_fit_types(type_Cathode Cathode_in)
 {
-   type_Cathode Cathode;
-   Cathode.N_mat = 3;  // number of materials in the cathode
+int k;
+   for(k=0; k<9; k++) { ifit_natoms_of_type[k]=0; ifit_size_of_type[k]=0; }
+   for(k=1; k<=Cathode_in.N_mat; k++) {
+     ifit_natoms_of_type[k] = 1; // default: fit all mass ratios 
+   }
+}
 
-   Cathode.mass_ratio[0] = 0.166625;
-   Cathode.Mat[0].electronic_conductivity = 1000.0;
-   Cathode.Mat[0].li_ion_conductivity = 0.0;
-   Cathode.Mat[0].grain_size = 25.0;
-   Cathode.Mat[0].molecular_weight = 12.01;
-   Cathode.Mat[0].density = 2.00;
-   Cathode.Mat[0].reduction_potential = 0.0;
-   Cathode.Mat[0].valency = 0.0;
-
-   Cathode.mass_ratio[1] = 0.369206;
-//   Cathode.mass_ratio[1] = 0.169206;
-   Cathode.Mat[1].electronic_conductivity = 0.0;
-   Cathode.Mat[1].li_ion_conductivity = 0.0005;
-   Cathode.Mat[1].grain_size = 30.0;
-   Cathode.Mat[1].molecular_weight = 81.38;
-   Cathode.Mat[1].density = 5.61;
-   Cathode.Mat[1].reduction_potential = 0.0;
-   Cathode.Mat[1].valency = 0.0;
-
-   Cathode.mass_ratio[2] = 0.464169;
-//   Cathode.mass_ratio[2] = 0.664169;
-   Cathode.Mat[2].electronic_conductivity = 0.0;
-   Cathode.Mat[2].li_ion_conductivity = 0.001;
-   Cathode.Mat[2].grain_size = 50.0;
-   Cathode.Mat[2].molecular_weight = 32.07;
-   Cathode.Mat[2].density = 1.95;
-   Cathode.Mat[2].reduction_potential = 3.0;
-   Cathode.Mat[2].valency = 2.0;
-
-   return(Cathode);
-} // init_Cathode(void)
-
-void conver_to_work_types(type_Cathode Cathode_in, type_work_Cathode* wCathode)
+type_fit_prop set_prop_type(type_work_Cathode* wCathode_in)
 {
-int k, mat_type;
-   wCathode->N_mat = Cathode_in.N_mat;  // number of materials in the cathode
+type_fit_prop fit_prop;
+int k, npar_fit, N_mat;
 
-   for(k=1; k<=wCathode->N_mat; k++) {
-     wCathode->Mat[k].e_cond = Cathode_in.Mat[k-1].electronic_conductivity;
-     wCathode->Mat[k].Li_cond = Cathode_in.Mat[k-1].li_ion_conductivity;
-     wCathode->Mat[k].Diam = Cathode_in.Mat[k-1].grain_size;
-     wCathode->Mat[k].gmol = Cathode_in.Mat[k-1].molecular_weight;
-     wCathode->Mat[k].Density = Cathode_in.Mat[k-1].density;
-     wCathode->Mat[k].Volt = Cathode_in.Mat[k-1].reduction_potential;
-     wCathode->Mat[k].valency = Cathode_in.Mat[k-1].valency;
-     wCathode->mass_ratio[k] = Cathode_in.mass_ratio[k-1];
+   volume_to_fit = 0.0; // global in cathcal_def.h
+   npar_fit = 0;
+   N_mat = wCathode_in->N_mat;
+
+   for(k=1; k<=N_mat; k++) {
+     if(ifit_natoms_of_type[k] > 0) volume_to_fit += wCathode_in->volume_ratio[k];
    }
 
-// Calculate  Nparticles[] from Mass_ratio[]
+   for(k=1; k<=N_mat; k++) {
+     if((ifit_natoms_of_type[k] > 0) && (k != ref_mass_material)) {
+       npar_fit++;
+       fit_prop.prop[npar_fit].param_kind = 1; // fit to mass ratio
+       fit_prop.prop[npar_fit].grain_type = k;
+       fit_prop.prop[npar_fit].val = wCathode_in->volume_ratio[k];
+       fit_prop.prop[npar_fit].val_min = 0;
+       fit_prop.prop[npar_fit].val_max = 1.0;
+     }
+   } // for(k=1...)
 
-   mass_to_particles(Cathode_in, wCathode);
+   // choose the first grain size as reference ! Change later !
+   ref_size = wCathode_in->Mat[ref_size_material].grain_size;
 
-//   printf("\n conver_to_work_types:\n");
-   for(k=1; k<=wCathode->N_mat; k++) {
-     mat_type = 0;
-     if(wCathode->Mat[k].e_cond > 2e-12) mat_type=mat_type|1;
-     if(wCathode->Mat[k].Li_cond > 2e-12) mat_type=mat_type|2;
-     if(wCathode->Mat[k].Volt > 2e-12) mat_type=mat_type|4;
-     wCathode->Mat[k].Mtype = mat_type;
+   for(k=1; k<=wCathode_in->N_mat; k++) {
+     if((ifit_size_of_type[k] > 0) && (k != ref_size_material)) {
+       npar_fit++;
+       fit_prop.prop[npar_fit].param_kind = 2; // fit to size
+       fit_prop.prop[npar_fit].grain_type = k;
+       fit_prop.prop[npar_fit].val = wCathode_in->Mat[k].grain_size/ref_size;
+       fit_prop.prop[npar_fit].val_min = 0.1*wCathode_in->Mat[k].grain_size;
+       fit_prop.prop[npar_fit].val_max = 10.0*wCathode_in->Mat[k].grain_size;
+     }
+   } // for(k=1...)
 
-//     printf("wCathode->Mat[%d].Mtype = %d\n", k,mat_type); 
-   }
+   fit_prop.npar_fit = npar_fit;
 
-} // void conver_to_work_types()
+   return(fit_prop);
+}
 
-
-/*************************
- *                       *
- * Optimization routines *
- *                       *
- *************************/
-
-// Calculate cathode utilization & capacity
-
-void implicit_cathode(type_work_Cathode Cat)
+void prop_to_param(type_fit_prop fit_prop_type, double p_fit[], double p_ini[])
 {
- double S_tot;
- double S_fract[8];
- double D_ratio[8][8];
- double Z_kl[8][8];
- double Z_kl1[8][8];
- double Z_CB[8], Z_SE[8];
- double P_CB[8], P_SE[8];
- double P_AM_util[8];
- double P_noCB[8], P_noSE[8];
+// fit_prop_type --> p_fit[] --> p_ini[]
 
- int na_all, nall_of_mater[6];
+  for(int k=1; k<=fit_prop_type.npar_fit; k++) {
+    p_fit[k] = fit_prop_type.prop[k].val;
+    p_ini[k] = fit_prop_type.prop[k].val;
+  }
+} // END prop_to_param()
 
- int nAM_part;
- int i,k,l;
- int ncat_types, mtype_k, mtype_l, mtype_kl;
- int Npart, Np_tot;
- double A, D, Dk, Dl, R_kk,R_kl, Denom, Rand_occ, C_AM, Cap;
- double gr_mass, gr_mass_AM, gr_mass_sys, Volume, Volume_cm3;
- int Ncount_of_mat[9];
+void combine_fit(type_fit_prop fit_prop_type,
+	         double pin_fit_atm[], double pin_fit_size[], double pout_fit[])
+{
+ int ipar, npar, ikind;
 
- ncat_types = Cat.N_mat;
-// printf("\n implicit_cathode: ncat_types= %d\n", ncat_types);
- 
- Np_tot = 0;
- S_tot = 0.0;
- for(k=1; k<=ncat_types; k++) {
-  Npart = Cat.Mat[k].Npart;
-  Np_tot += Npart;
-  Dk = Cat.Mat[k].Diam;
-  S_fract[k] = Npart * Dk*Dk;
-  S_tot += S_fract[k];
-  for(l=1; l<=ncat_types; l++) {
-   Dl = Cat.Mat[l].Diam;
-   D_ratio[k][l] = Dk/Dl;
-  } 
- } // for(k=1; k<=ncat_types; k++)
+  npar = fit_prop_type.npar_fit;
 
- if(Np_tot > 0) { for(k=1; k<=ncat_types; k++) S_fract[k]/=S_tot; }
+  for(ipar=1; ipar<=npar; ipar++) {
+    ikind = fit_prop_type.prop[ipar].param_kind;
+    switch (ikind) {
+      case 1: {  pout_fit[ipar] = pin_fit_atm[ipar]; break; }  // grain at%
+      case 2: {  pout_fit[ipar] = pin_fit_size[ipar]; break; } // grain size
+    } // switch (ikind)
+  } // for(ipar=1; ...
+} // END combine_fit()
+
+void get_new_fit_size(type_fit_prop fit_prop_type, double pin_fit[], double pout_fit[])
+{
+ int ip, ipar, npar, ikind, id_size;
+ int iparm_of[MAX_PARM_FIT+1];
+ double ran, value_min, value_max, value_new;
+
+  npar = fit_prop_type.npar_fit;
+
+  for(ip=1; ip<=npar; ip++) { pout_fit[ip] = pin_fit[ip]; }
+  id_size = 0;
+  for(ipar=1; ipar<=npar; ipar++) {
+    ikind = fit_prop_type.prop[ipar].param_kind;
+    if(ikind==2) {
+      id_size++;
+      iparm_of[id_size] = ipar;
+    } 
+  } // for(ipar=1; ...
+
+  if(id_size > 0) {
+// Select a random change for size fiiting set of parameters
+    for(ip=1; ip<=id_size; ip++) {
+      ipar = iparm_of[ip];
+      value_min = fit_prop_type.prop[ipar].val_min;
+      value_max = fit_prop_type.prop[ipar].val_max;
+      ran = (double)rand() / (double)RAND_MAX; // 0 < ran < 1
+      value_new = (value_max - value_min)*ran + value_min;
+      pout_fit[ipar] = value_new;
+    } // for(ip=1; ip<=id_size; ip++)
+  } // if(id_size > 0)
 
 /*
- if(iprint > 0) { 
-  for(i=1; i<=ncat_types; i++) {
-   printf("S_frac[%d]= %lf\n", i,S_fract[i]);
+  printf("get_new_fit_size:\n");
+  for(ip=1; ip<=id_size; ip++) {
+    printf("pin_fit[%d]= %lf --> pout_fit[%d]= %lf\n", ip,pin_fit[ip], ip,pout_fit[ip]);
   }
-
-  printf("\n");
-  for(k=1; k<=ncat_types; k++) {
-   for(l=1; l<=ncat_types; l++) {
-    printf("  D(%d, %d)= %6.2lf", k,l,  D_ratio[k][l]);
-   }
-   printf("\n");
-  }
- } // if(iprint > 0)
 */
+} // END get_new_fit_size()
 
- Rand_occ = 6.0;
- A = 0.5*(2.0 - sqrt(3.0))*Rand_occ;
+void get_new_fit_vol(type_fit_prop fit_prop_type, double pin_fit[], double pout_fit[])
+{
+ int id_atm = 0;
+ double ran, ran1, conc_range;
+ int i, k, ip, ip_ran, ipar, npar, ikind, iused;
+ int iparm_of[MAX_PARM_FIT+1];
+ int ip_num[MAX_PARM_FIT+1];
+ int ip_occ[MAX_PARM_FIT+1];
 
- for(k=1; k<=ncat_types; k++) {
-  for(l=1; l<=ncat_types; l++) {
-   R_kl = D_ratio[k][l];
-   if(R_kl < 1.0) {
-    R_kl = 1.0/R_kl;
-    Denom = 1.0 + R_kl - sqrt(R_kl*(R_kl + 2.0));
-    Z_kl1[k][l] = A*(R_kl + 1.0)/(Denom*R_kl*R_kl);
-   } else {
-    Denom = 1.0 + R_kl - sqrt(R_kl*(R_kl + 2.0));
-    Z_kl1[k][l] = A*(R_kl + 1.0)/Denom;
-   }
-  } // for(l=1; l<=ncat_types; l++)
- } // for(k=1; k<=ncat_types; k++)
+  npar = fit_prop_type.npar_fit; // number of fitted parameters
 
- for(k=1; k<=ncat_types; k++) {  // R_kk = 1
-  R_kk = 1.0;
-  Z_kl1[k][k] = A*(R_kk + 1.0)/Denom;
- }
+  conc_range = volume_to_fit; // defined in set_prop_type()
 
- // Average number of contacts of a k-particle with l-particles
- for(k=1; k<=ncat_types; k++) {
-  for(l=1; l<=ncat_types; l++) {
-   Z_kl[k][l] =  Z_kl1[k][l]*S_fract[l];
+  for(ipar=1; ipar<=npar; ipar++) {
+    ikind = fit_prop_type.prop[ipar].param_kind;
+    if(ikind==1) {
+      id_atm++;
+      iparm_of[id_atm] = ipar;
+    } 
+  } // for(ipar=1; ...
+
+  for(i=0; i<=npar; i++) { ip_num[i]=0; ip_occ[i]=0; }
+
+  for(ip=1; ip<id_atm; ip++) {
+    do {
+      ran = (double)rand() / (double)RAND_MAX;
+      ip_ran = (int)(id_atm*ran) + 1;
+      iused = 0;
+      for(k=1; k<=ip; k++) { if(ip_ran==ip_num[k]) iused=1; }
+    } while (iused>0);
+
+    ip_num[ip] = ip_ran;
+    ip_occ[ip_ran] = 1;
+
+    ran = (double)rand() / (double)RAND_MAX; // 0 < ran < 1
+    ran1 = conc_range*ran;                   // 0 < ran1 < conc_range
+    conc_range = conc_range - ran1;
+    pout_fit[iparm_of[ip_ran]] = ran1;
+
+//printf("get_new_fit_vol: ip= %d, ip_ran= %d, ran1= %lf, ip_occ[%d]= %d, pout_fit[%d]= %lf\n",
+//ip, ip_ran, ran1, ip_ran, ip_occ[ip_ran], iparm_of[ip_ran], pout_fit[iparm_of[ip_ran]]);	
+
+  } // for(int ip=1; ip<id_atm; ip++)
+
+  for(k=1; k<=id_atm; k++) { if(ip_occ[k]==0) pout_fit[iparm_of[k]]=conc_range; }
+/*  
+  printf("get_new_fit_vol:\n");
+  for(ip=1; ip<=id_atm; ip++) {
+    printf("pin_fit[%d]= %lf --> pout_fit[%d]= %lf\n", ip,pin_fit[ip], ip,pout_fit[ip]);
   }
- }
+*/
+} // END get_new_fit_vol()
 
- for(i=0; i<8; i++) { Z_CB[i]=0.0; Z_SE[i]=0.0; }
- for(k=1; k<=ncat_types; k++) {
-  mtype_k = Cat.Mat[k].Mtype;
-  for(l=1; l<=ncat_types; l++) {
-   mtype_l = Cat.Mat[l].Mtype;
-   mtype_kl = mtype_k & mtype_l;
-   if((mtype_kl&1) == 1) Z_CB[k] += Z_kl[k][l];
-   if((mtype_kl&2) == 2) Z_SE[k] += Z_kl[k][l];
-  } // for(l=1; l<=ncat_types; l++)
- } // for(k=1; k<=ncat_types; k++)
+int param_to_prop(double param[], type_fit_prop* fit_prop_type, type_work_Cathode* wCathode)
+{ 
+// param[] --> fit_prop_type --> wCathode
+
+ type_work_Cathode Cath;
+ int ipenalty = 0;
+ int npar_fit, ikind, ipar, itype;
+ double vol_prc, tot_vol_prc;
+ double val, val_min, val_max, size_ratio, size_ref;
+
+  npar_fit = fit_prop_type->npar_fit;
+
+//  printf("param_to_prop: npar_fit= %d\n", npar_fit);
+
+  tot_vol_prc = 0.0;
+  for(ipar=1; ipar<=npar_fit; ipar++) {
+    ikind = fit_prop_type->prop[ipar].param_kind;
+    if(ikind==1) { tot_vol_prc += param[ipar];
+
+// printf("param_to_prop: param[%d]= %lf, tot_vol_prc= %lf\n", ipar,param[ipar],tot_vol_prc);
+
+    } // grain at%
+    if(ikind==2) {
+      val = param[ipar];  // grain diameter
+      val_min = fit_prop_type->prop[ipar].val_min;
+      val_max = fit_prop_type->prop[ipar].val_max;
+      if((val < val_min) || (val_max < val)) ipenalty=1;
+    } // case 2:
+
+  } // for(ipar=1; ipar<=npar_fit; ipar++)
+
+  if(tot_vol_prc > 1.00001) ipenalty=1; 
+
+// Update optimized properties:
+// Update grain diam first:
+
+  for(ipar=1; ipar<=npar_fit; ipar++) {
+    ikind = fit_prop_type->prop[ipar].param_kind;
+    if(ikind==2) { // grain diam
+      size_ratio = param[ipar];
+      fit_prop_type->prop[ipar].val = size_ratio;
+      itype = fit_prop_type->prop[ipar].grain_type;
+      size_ref = wCathode->Mat[ref_size_material].grain_size;
+      wCathode->Mat[itype].grain_size = size_ratio*size_ref; // update grain size
+    } // if(ikind==2)...
+  } // for(ipar=1; ipar<=npar_fit; ipar++)
+
+// Update grain volume_ratio next:
+
+  for(ipar=1; ipar<=npar_fit; ipar++) {
+    ikind = fit_prop_type->prop[ipar].param_kind;
+    if(ikind==1) { // volume_ratio
+      vol_prc = param[ipar];
+      fit_prop_type->prop[ipar].val = vol_prc;
+      itype = fit_prop_type->prop[ipar].grain_type;
+      if((vol_prc < 0.0) || (vol_prc > 1.0)) {
+	ipenalty = 1;
+	vol_prc = 0.0;
+      }
+      wCathode->volume_ratio[itype] = vol_prc; // update mass ratio
+
+//printf("param_to_prop: ikind=%d, vol_prc=param[ipar=%d]= %lf, itype= %d\n", ikind,ipar,vol_prc,itype);
+
+    } // if(ikind==1)...
+  } // for(ipar=1; ipar<=npar_fit; ipar++)
+
+//printf("FROM param_to_prop:\n");
+
+  Cath = *wCathode;
+  volume_to_particles(Cath, wCathode);
+  Cath = *wCathode;
+  particles_to_mass(Cath, wCathode);
+/*
+  for(int i=1; i<=3; i++) {
+    printf("param_to_prop: wCathode->volume_ratio[%d]= %lf, wCathode->Mat[%d].Npart=%d\n",
+    i,wCathode->volume_ratio[i], i,wCathode->Mat[i].Npart);
+  }
+*/
+  return(ipenalty);
+} // END param_to_prop()
+
+type_work_Cathode minimization(type_work_Cathode wCathode) // updates wCathode during minimization
+{
+int isuccess = 0;
+int imin_exist = 0;
+int j0 = 1;
+int iter = 1000;   // SIMPLEX internal iterations
+int iend = 0;
+double yb = 100.0;
+
+int i,k, j_ind, ntrials, ntrials0, iter_out;
+int npar_fit;
+double CF_min;
+double p1_fit[MAX_PARM_FIT+1];
+double pnew_fit[MAX_PARM_FIT+1];
+double pnew_fit_atm[MAX_PARM_FIT+1];
+double pnew_fit_size[MAX_PARM_FIT+1];
+
+   fit_prop_type = set_prop_type(&wCathode);
+   prop_to_param(fit_prop_type, param_fit, param_ini);
+   npar_fit = fit_prop_type.npar_fit;
 
 /*
- if(iprint > 0) { 
-  printf("Z_kl1:\n");
-  for(k=1; k<=ncat_types; k++) {
-   for(l=1; l<=ncat_types; l++) {
-    printf("  Z1[%d][%d]= %6.2lf", k,l,Z_kl1[k][l]);
+   for(i=1; i<=npar_fit; i++) {
+     printf("param_fit[%d]= %lf  param_ini[%d]= %lf  kind= %d\n",
+     i,param_fit[i], i,param_ini[i], fit_prop_type.prop[i].param_kind);
    }
-   printf("\n");
-  }
-  printf("\nZ_kl:\n");
-  for(k=1; k<=ncat_types; k++) {
-   for(l=1; l<=ncat_types; l++) {
-    printf("  Z[%d][%d]= %6.2lf", k,l,Z_kl[k][l]);
-   }
-   printf("\n");
-  }
-  printf("\n");
- } // if(iprint > 0)
-
- if(iprint > 0) { 
-  for(k=1; k<=ncat_types; k++)
-  printf("  Z_CB[%d]= %8.3lf Z_SE[%d]= %8.3lf\n", k,Z_CB[k], k,Z_SE[k]);
-  printf("\n");
- } // if(iprint > 0)
 */
+   CF_min = CF_max + CF_eps;  // To start the for{} loop !
 
-// P_CB(k) = Prob of k-type CB grain to be in a percolating cluster and
-// utilized
-// P_SE(k) = Prob of k-type SE grain to be in a percolating cluster and
-// utilized
- for(i=0; i<8; i++) { P_CB[i]=0.0; P_SE[i]=0.0; }
- for(k=1; k<=ncat_types; k++) {
-  if(Z_CB[k] < 4.236) {
-   if(Z_CB[k] > 1.764) P_CB[k] = 1.0 - pow(((4.236 - Z_CB[k])/2.472),3.7);
-  } else { P_CB[k] = 1.0; } // Z_CB[k] > 4.236
-  if(Z_SE[k] < 4.236) {
-   if(Z_SE[k] > 1.764) P_SE[k] = 1.0 - pow(((4.236 - Z_SE[k])/2.472),3.7);
-  } else { P_SE[k] = 1.0; } // Z_SE[k] > 4.236
- } // for(k=1; k<=ncat_types; k++)
+   for(ntrials0=1; ntrials0<=iterations; ntrials0++) {
+
+     for(i=1; i<=fit_prop_type.npar_fit; i++) {
+       param0_fit[i] = param_fit[i];
+       p_fit[i][1] = param_fit[i];
+       if(fit_prop_type.prop[i].param_kind == 1) p1_fit[i]=param_fit[i];
+       if(fit_prop_type.prop[i].param_kind == 2) p1_fit[i]=param_ini[i];
+     }
+
+     CF = y_fit[1] = COST_FUNC(param_fit, &wCathode);
+
+//     for(i=1; i<=npar_fit; i++) printf("p_fit[%d][1]= %lf\n", i,p_fit[i][1]);
+
+     if(CF < CF_min_glb) {
+       imin_exist = 1; j0 = 2;
+       CF_min_glb = CF_min = CF;
+       for(i=0; i<=npar_fit; i++) param_min_glb[i]=param_fit[i];
+     }
+
+//printf("\nTRIAL: %d of %d\n INITIAL EVAL at minimization start...\n", ntrials0,iterations);
+//printf("Start CF= %lf\n", CF);
+
+//     goto point1;
+
+     for(ntrials=0; CF_min>(CF_max-CF_eps); ntrials++) {
+       CF_min = CF_max + CF_eps;
+       for(j_ind=j0; j_ind<=npar_fit+1; j_ind++) {
+//	 printf("j_ind= %d of %d\n", j_ind, npar_fit+1);
+	 get_new_fit_vol(fit_prop_type, p1_fit, pnew_fit_atm);
+	 get_new_fit_size(fit_prop_type, p1_fit, pnew_fit_size);
+	 combine_fit(fit_prop_type, pnew_fit_atm, pnew_fit_size, pnew_fit);
+
+	 for(i=1; i<=npar_fit; i++) {
+	   p_fit[i][j_ind] = pnew_fit[i];
+	   param_fit[i] = pnew_fit[i];
+	 }
+
+	 CF = COST_FUNC(param_fit, &wCathode);
+
+	 y_fit[j_ind] = CF;
+
+// printf("1: p_fit[1][%d]= %lf p_fit[2][%d]= %lf p_fit[3][%d]= %lf  CF= %lf\n",
+// j_ind,p_fit[1][j_ind], j_ind,p_fit[2][j_ind], j_ind,p_fit[3][j_ind], CF);
+
+	 if(CF < (CF_min-2.0*CF_eps)) { // substantially less
+	   CF_min = CF;
+	   for(i=0; i<=npar_fit; i++) param_min[i]=param_fit[i];
+	   imin_exist = 1;
+         }
+
+         if(CF < CF_min_glb) {
+           CF_min_glb = CF;
+           for(i=0; i<=npar_fit; i++) param_min_glb[i]=param_fit[i];
+         }
+       } // for(j_ind=1; j_ind<=npar_fit+1; j_ind++)
+
+// printf("\nminimization: ntrials= %d of %d, CF_min= %lf < CF_max= %lf CF_min_glb= %lf\n",
+//    	ntrials, iterations, CF_min, CF_max, CF_min_glb);
+
+       if(CF_min > (CF_max-CF_eps)) { isuccess = 0; } else { isuccess = 1; }
+
+     } // for(ntrials=0; CF_min>(CF_max-CF_eps); ntrials++)
+
+     if(imin_exist == 0) {
+//       printf("\n INIT NOT FOUND at ntrials= %d, CF_min= %lf\n", ntrials, CF_min);
+     } else { // imin_exist = 1 START SIMPLEX !
+
+point1:
+/*
+     isuccess = 1; imin_exist = 1;
+     p_fit[1][1] = 0.02917737; p_fit[2][1] = 0.26482655; p_fit[3][1] = 0.70599608;
+     p_fit[1][2] = 0.67631435; p_fit[2][2] = 0.26334553; p_fit[3][2] = 0.06034012;
+     p_fit[1][3] = 0.93370932; p_fit[2][3] = 0.00200787; p_fit[3][3] = 0.06428281;
+     p_fit[1][4] = 0.13759850; p_fit[2][4] = 0.40931035; p_fit[3][4] = 0.45309114;
+*/
+     for(int j=1; j<=npar_fit+1; j++) {
+       for(i=1; i<=npar_fit; i++) param_fit[i]=p_fit[i][j];
+       CF = COST_FUNC(param_fit, &wCathode);
+       y_fit[j] = CF;
+// printf("2: p_fit[1][%d]= %lf p_fit[2][%d]= %lf p_fit[3][%d]= %lf  CF= %lf\n",
+// j,p_fit[1][j], j,p_fit[2][j], j,p_fit[3][j], CF);
+     }
+// printf("\n");
+
+// Minimization cycle
+
+       for(i=1; i<=npar_fit; i++) pbest_fit[i]=p_fit[i][1];
+
+       iter_out = SIMPLEX(npar_fit, yb, tolerance, iter, &wCathode);
+
+   return(wCathode);  // NOT OK after SIMPLEX  VVVV
+
+       if(iter_out > 0) iend=1;
+
+//printf("minimization: iter_out= %d\n", iter_out);
+//for(i=1; i<=npar_fit; i++) printf("pbest_fit[%d]= %lf\n", i,pbest_fit[i]);
+
+       for(k=1; k<=npar_fit; k++) param_fit[k]=pbest_fit[k]; 
+//       for(k=1; k<=npar_fit; k++) param_fit[k]=p_fit[k][1]; 
+       CF = COST_FUNC(param_fit, &wCathode);
+
+//     return(wCathode); // NOT OK VVVV
+
+       if(CF < CF_min) {
+	  CF_min = CF;
+	  imin_exist = 1;
+	  for(i=0; i<=npar_fit; i++) param_min[i]=param_fit[i];
+          if(CF_min < CF_min_glb) {
+             CF_min_glb = CF_min;
+	     for(i=0; i<=npar_fit; i++) param_min_glb[i]=param_min[i];
+          }
+       }
+
+
+     } // else if(imin_exist == 0) 
+
+
+   } // for(ntrials0=0; ntrials0<iterations; ntrials0++)
+
+   return(wCathode);
+
+//printf("\n *****************\nEND minimization: CF_min_glb= %lf\n", CF_min_glb);
+//for(i=1; i<=npar_fit; i++) printf("param_min_glb[%d]= %lf\n", i,param_min_glb[i]);
+
+} // END minimization
+
+double COST_FUNC(double param[MAX_PARM_FIT+1], type_work_Cathode* wCathode)
+{
+ type_work_Cathode Cath;
+ int ipenalty = 0;
+ double CF;
+
+ CF = 9999.999;
 
 /*
- if(iprint > 0) { 
-  for(k=1; k<=ncat_types; k++)
-  printf("  P_CB[%d]= %6.3lf P_SE[%d]= %6.3lf\n", k,P_CB[k], k,P_SE[k]);
-  printf("\n");
- } // if(iprint > 0)
-*/
-
- for(i=0; i<8; i++) 
- { P_noCB[i]=1.0; P_noSE[i]=1.0; P_AM_util[i]=0.0; }
- for(k=1; k<=ncat_types; k++) {
-  for(l=1; l<=ncat_types; l++) {
-   mtype_l = Cat.Mat[l].Mtype;
-   if((mtype_l&1) == 1) P_noCB[k] *= pow((1.0 - P_CB[l]), Z_kl[k][l]);
-   if((mtype_l&2) == 2) P_noSE[k] *= pow((1.0 - P_SE[l]), Z_kl[k][l]);
-  } // for(l=1; l<=ncat_types; l++)
- } // for(k=1; k<=ncat_types; k++)
-
- for(i=0; i<9; i++) { Util_of_Mat[i]=0.0; Ncount_of_mat[i]=0; }
- for(i=0; i<6; i++) { Util_of_type[i]=0.0; nall_of_mater[i]=0; }
- for(k=1; k<=ncat_types; k++) {
-  mtype_k = Cat.Mat[k].Mtype;
-  Npart = Cat.Mat[k].Npart;
-  if((mtype_k&1) == 1) {
-   nall_of_mater[1] +=  Npart;
-   Ncount_of_mat[k] += Npart;
-   Util_of_type[1] += P_CB[k]*Npart;
-   Util_of_Mat[k] += P_CB[k]*Npart;
-  }
-  if((mtype_k&2) == 2) {
-   nall_of_mater[2] +=  Npart;
-   Ncount_of_mat[k] += Npart;
-   Util_of_type[2] += P_SE[k]*Npart;
-   Util_of_Mat[k] += P_SE[k]*Npart;
-  }
-  if((mtype_k&4) == 4) {
-   nall_of_mater[4] +=  Npart;
-   Ncount_of_mat[k] += Npart;
-   P_AM_util[k] = (1.0 - P_noCB[k])*(1.0 - P_noSE[k]);
-   Util_of_type[4] += P_AM_util[k]*Npart;
-   Util_of_Mat[k] += P_AM_util[k]*Npart;
-  }
- } // for(k=1; k<=ncat_types; k++)
-
- na_all = 0;
- Util_of_type[0] = 0.0;
- for(k=1; k<=ncat_types; k++) {
-   na_all += Ncount_of_mat[k];
-   if(Ncount_of_mat[k] > 0) {
-     Util_of_Mat[k] /= Ncount_of_mat[k];
-     Util_of_type[0] += Util_of_Mat[k]*Cat.mass_ratio[k];
-   }
+ int npar_fit = fit_prop_type.npar_fit;
+ for(int i=1; i<=npar_fit; i++) {
+   printf("COST_FUNC: param[%d]= %lf, kind= %d\n",
+   i,param[i], fit_prop_type.prop[i].param_kind);
  }
-
- if(nall_of_mater[1] > 0) Util_of_type[1] /= nall_of_mater[1];
- if(nall_of_mater[2] > 0) Util_of_type[2] /= nall_of_mater[2];
- if(nall_of_mater[4] > 0) Util_of_type[4] /= nall_of_mater[4];
- Util_of_type[5] = Util_of_type[0];
-
- nAM_part = 0;
- C_AM = 0.0; C_AM_max = 0.0; gr_mass_AM = 0.0; gr_mass_sys = 0.0;
- for(k=1; k<=ncat_types; k++) {
-  mtype_k = Cat.Mat[k].Mtype;
-  D = Cat.Mat[k].Diam;
-  Volume = 3.141592/6.0 * D*D*D; // [nm^3]
-  Volume_cm3 = Cat.Mat[k].Npart * Volume * 1E-21; // [cm^3]
-  gr_mass = Volume_cm3 * Cat.Mat[k].Density;      // [grams]
-
-  if((mtype_k&4) == 4) {
-   nAM_part += Cat.Mat[k].Npart;
-   // Cap = n * Na * e / (3.6 * gmol_mass(k))
-   Cap = Cat.Mat[k].valency * 6.022045E23*1.6021E-19 /(3.6*Cat.Mat[k].gmol);
-   C_AM_max += gr_mass*Cap;
-   C_AM += gr_mass*Cap*Util_of_type[4];
-   gr_mass_AM += gr_mass;
-  }
-  gr_mass_sys += gr_mass;
- } // for(k=1; k<=ncat_types; k++)
-
- if(nAM_part > 0) {
-  C_AM_max /=gr_mass_AM;
-  C_of_AM = C_AM/gr_mass_AM;
-  C_of_sys = C_AM/gr_mass_sys;
- } else  { // No AM material
-  C_AM_max = 1673.0;
-  C_of_AM = 0.0;
-  C_of_sys = 0.0;
- }
-
-/*
- if(iprint > 0) { 
-  printf("Utilization:\n");
-  printf("U(C)   = %7.3lf\n", 100.0*Util_of_type[1]);
-  printf("U(SE)  = %7.3lf\n", 100.0*Util_of_type[2]);
-  printf("U(AM)  = %7.3lf\n", 100.0*Util_of_type[4]);
-  printf("U(all) = %7.3lf\n", 100.0*Util_of_type[5]);
-  printf("CAM_max = %9.2lf\n", C_AM_max);
-  printf("C_of_AM = %9.2lf\n", C_of_AM);
-  printf("C_of_sys = %9.2lf\n\n", C_of_sys);
-
-  for(k=1; k<=ncat_types; k++) {
-   mtype_k = Cat.Mat[k].Mtype;
-   if((mtype_k&4) == 4) {
-    printf("  P_noCB[%d]= %7.4lf  P_noSE[%d]= %7.4lf |  P_AM_util[%d]= %7.4lf\n\n",
-    k,P_noCB[k], k,P_noSE[k], k,P_AM_util[k]);
-   }
-  } // for(k=1; k<=ncat_types; k++)
-
-  printf("\n");
- } // if(iprint > 0)
 */
+ ipenalty = param_to_prop(param, &fit_prop_type, wCathode); // param[] --> wCathode
 
- return;
-} // END implicit_cathode()
+// printf("COST_FUNC: ipenalty=%d\n", ipenalty);
+
+ if(ipenalty==0) { // no penalty, keep going!
+   Cath = *wCathode;
+
+// for(int i=1; i<=Cath.N_mat; i++) printf("COST_FUNC: Cath.vol_ratio[%d]= %lf\n", i,Cath.vol_ratio[i]);
+
+   implicit_cathode(Cath);
+   *wCathode = Cath;
+   CF = collect_cathode(tau);  // Cost Function calculation (internal only)
+ } // if(ipenalty==0) 
+
+// printf("COST_FUNC: CF= %lf\n", CF);
+
+ return(CF);
+} // END collect_cathode()
 
 double collect_cathode(type_tau tau)
 {
@@ -423,18 +503,3 @@ double collect_cathode(type_tau tau)
  return(CF);
 } // END collect_cathode()
 
-/*
-void print_res(int N_mat, CalculationResult *result)
-{
-   printf("\nCF= %lf\n", CF);
-   printf("Cathode materials: %d\n", N_mat);
-   printf("am_capacity= %8.2lf mAh\n", result->am_capacity);
-   printf("cathode_capacity= %8.2lf mAh\n", result->overall_cathode_capacity);
-   for (int i = 0; i < N_mat; i++) {
-       printf("Utilization of material[%d]= %6.2lf%%\n", 
-       i+1,result->material_utilization[i]);
-   }
-
-  return;
-} // print_res()
-*/

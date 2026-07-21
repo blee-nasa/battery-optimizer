@@ -1,19 +1,14 @@
 
-#define MAX_PARM_FIT 8   // Max number of fitting parameters
-#define MAX_WEIGHTS 8    // Max number of weights
+#define MAX_PARM_FIT 17    // Max number of fitting parameters
+#define MAX_WEIGHTS 8      // Max number of weights
 #define PI 3.1415926536
 #define MIN_PARTICLES 1000 // Minimum number of particles of any type
 
-extern int iprint;   // 0: no print; 1: print calculations to test
-
-extern int iterations;   // simplex itter, 0: compute capacity only;
-extern double tolerance; // SIMPLEX tolerance value to end
-extern int Ntypes;       // number of powder material types
-extern double C_of_AM, C_AM_max, C_of_sys;
-
-extern double Util_of_type[6];
-extern double Util_of_Mat[9];
-extern double CostF[MAX_WEIGHTS];
+int ref_mass_material = 1; // Unless Mat N:1 is fixed as constant
+int ref_size_material = 1; // Unless Mat N:1 is fixed as constant
+int iprint = 0;
+int iterations = 1;   // simplex itter, 0: compute capacity only;
+double tolerance = 0.01; // SIMPLEX tolerance value to end
 
 typedef struct {
  double AM_load;
@@ -37,10 +32,29 @@ typedef struct {
 } type_Material;
 
 typedef struct {
+ long long Npart;  // number of particles
+ double e_cond;
+ double Li_cond;
+ double Volt;
+ double grain_size;
+ double density;
+ double gmol;
+ double valency;
+ int Mtype;   // 1:C; 2:SE; 4:AM + any binary combination
+} type_work_material;
+
+typedef struct {
     int N_mat;
     type_Material Mat[8];
     double mass_ratio[8];  // mass% ratio of each material
 } type_Cathode;
+
+typedef struct {
+    int N_mat;
+    type_work_material Mat[9];
+    double mass_ratio[9];  // mass% ratio of each material
+    double volume_ratio[9];  // mass% ratio of each material
+} type_work_Cathode;
 
 typedef struct {
     double am_capacity;
@@ -50,37 +64,66 @@ typedef struct {
 } CalculationResult;
 
 typedef struct {
- int Npart;  // number of particles
- double e_cond;
- double Li_cond;
- double Volt;
- double Diam;
- double Density;
- double gmol;
- double valency;
- int Mtype;   // 1:C; 2:SE; 4:AM + any binary combination
-} type_work_material;
+    int param_kind; // 1: mass ratio; 2: gr size ratio;
+    int grain_type; // of which grain type is this param. !
+    double val;     // paranmeter value
+    double val_min;
+    double val_max;
+} type_prop;
 
 typedef struct {
-    int N_mat;
-    type_work_material Mat[8];
-    double mass_ratio[8];  // mass% ratio of each material
-} type_work_Cathode;
+  int npar_fit;
+  type_prop prop[MAX_PARM_FIT];
+} type_fit_prop;
 
+// global variables
+type_fit_prop fit_prop_type;
+double ref_size;              // in set_prop_type()
+double volume_to_fit;         // in set_prop_type()
+int ifit_natoms_of_type[9];   // 0: no mass ratio fit; 1: mass ratio fit
+int ifit_size_of_type[9];     // 0: no size ratio fit; 1: size ratio fit
+
+// global functions
 type_tau init_tau(void);
 type_Cathode init_Cathode(void);
 void conver_to_work_types(type_Cathode, type_work_Cathode*);
 void optimizer(type_Cathode, type_Cathode*, CalculationResult*);
-void calculator(type_Cathode, CalculationResult*);
+void calculate(type_Cathode, CalculationResult*);
 void implicit_cathode(type_work_Cathode);
 double collect_cathode(type_tau);
-void print_res(int, CalculationResult*);
+void set_fit_types(type_Cathode);
+type_fit_prop set_prop_type(type_work_Cathode*);
+void get_res(type_work_Cathode, type_Cathode*, CalculationResult*);
+void print_res(type_Cathode, CalculationResult*);
 
-int iprint = 0;
-double CF;
+void prop_to_param(type_fit_prop, double param_fit[], double param_ini[]);
+int param_to_prop(double param_fit[], type_fit_prop*, type_work_Cathode*); // return(ipenalty=0,1)
+void get_new_fit_vol(type_fit_prop, double pin_fit[], double pout_fit[]);
+void get_new_fit_size(type_fit_prop, double pin_fit[], double pout_fit[]);
+void combine_fit(type_fit_prop, double pin_fit_atm[], double pin_fit_size[], double pout_fit[]);
+
+type_work_Cathode minimization(type_work_Cathode);
+double COST_FUNC(double param[], type_work_Cathode*);
+int SIMPLEX(int, double, double, int, type_work_Cathode*);
+double SIMPLEX_NEXT(double psum[], int, double, int, double, double fac, type_work_Cathode*);
+
+type_tau tau;
+
+double CF, CF_max, CF_min_glb, CF_eps;
 double C_of_AM, C_AM_max, C_of_sys;
-double Util_of_type[6];
+double Util_of_type[9];
 double Util_of_Mat[9];
 double CostF[MAX_WEIGHTS];
-type_tau tau;
+double CostF_max[MAX_WEIGHTS];
+int npar_fit;
+double psum [MAX_PARM_FIT+2];
+double y_fit[MAX_PARM_FIT+2];
+double param0_fit[MAX_PARM_FIT+1];
+double param_fit[MAX_PARM_FIT+1];
+double param_ini[MAX_PARM_FIT+1];
+double param_min[MAX_PARM_FIT+1];
+double param_min_glb[MAX_PARM_FIT+1];
+double p_fit[MAX_PARM_FIT+1][MAX_PARM_FIT+1];
+double pbest_fit[MAX_PARM_FIT+1];
+
 
