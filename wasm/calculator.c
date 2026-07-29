@@ -24,7 +24,7 @@ type_work_Cathode wCathode; // working cathode type
         return;
     }
 
-    conver_to_work_types(Cathode_in, &wCathode);
+    convert_to_work_types(Cathode_in, &wCathode);
     implicit_cathode(wCathode);
 
     for (int i = 0; i < 8; i++) {
@@ -47,7 +47,7 @@ type_Cathode Cath_out;
     tau = init_tau();  // initialize weight factors tau
 
     set_fit_types(Cathode_in);
-    conver_to_work_types(Cathode_in, &wCathode_in);
+    convert_to_work_types(Cathode_in, &wCathode_in);
 /*
     int N_mat = Cathode_in.N_mat;
     for (int i=0; i<N_mat; i++) {

@@ -73,7 +73,7 @@ double V_of[9];
    for (i=1; i<=N_mat; i++) {
      Cathode_out->volume_ratio[i] = V_of[i]/V_tot;
 
-// printf("particles_to_volume: Cathode_out->volume_ratio[%d]= %lf\n", i,Cathode_out->volume_ratio[i]);
+//printf("particles_to_volume: Cathode_out->volume_ratio[%d]= %lf\n", i,Cathode_out->volume_ratio[i]);
 
    }
 } // void particles_to_volume() 
@@ -109,8 +109,7 @@ void volume_to_particles(type_work_Cathode Cathode_in, type_work_Cathode* Cathod
 int i, i_max, N_mat;
 long long N_min, N_part[9];
 double D, D_max, V_tot, Part_mult;
-double D_of[9], V_of[9], M_of[9], V_ratio[9];
-double V1_of[9], M1_of[9];
+double D_of[9], V_of[9], V_ratio[9];
 
    N_mat = Cathode_in.N_mat;
    for (i=0; i<N_mat; i++) N_part[i]=0; 
@@ -121,19 +120,19 @@ double V1_of[9], M1_of[9];
      V_ratio[i] = Cathode_in.volume_ratio[i];
      D = Cathode_in.Mat[i].grain_size;
      D_of[i] = D;
-     V1_of[i] = PI/6.0 *D*D*D;           // Volume of one particle 
+     V_of[i] = PI/6.0 *D*D*D;           // Volume of one particle 
      if(D > D_max) { D_max=D; i_max=i; }
    } // for (int i = 0; i < 8; i++)
 
 // Assume system contains only MIN_PARTICLES particle of the largest material type.
 // Calculate the particles number of the other materials.
 
-   V_tot = MIN_PARTICLES*V1_of[i_max]/V_ratio[i_max];  // MIN_PARTICLES = 1000;
+   V_tot = MIN_PARTICLES*V_of[i_max]/V_ratio[i_max];  // MIN_PARTICLES = 1000;
    // Total volume assuming MIN_PARTICLES of the largest size.
 
    N_min = MIN_PARTICLES;
    for (i=1; i<=N_mat; i++) {
-     N_part[i] = round(V_ratio[i]*V_tot/V1_of[i]);
+     N_part[i] = round(V_ratio[i]*V_tot/V_of[i]);
      if(N_part[i] < N_min) N_min=N_part[i];
    }
  
@@ -151,10 +150,17 @@ double V1_of[9], M1_of[9];
 type_Cathode init_Cathode(void)
 {
    type_Cathode Cathode;
+//   Cathode.N_mat = 3;  // number of materials in the cathode
    Cathode.N_mat = 3;  // number of materials in the cathode
 
-   Cathode.mass_ratio[0] = 70.0;  // wt%
-   Cathode.Mat[0].electronic_conductivity = 1.e-9;  // S/cm
+//   Cathode.mass_ratio[0] = 70.0;  // wt%
+//   Cathode.mass_ratio[0] = 53.762;  // wt%
+//   Cathode.mass_ratio[0] = 33.765;  // wt%
+//   Cathode.mass_ratio[0] = 63.800;  // wt%
+//   Cathode.mass_ratio[0] = 33.762;  // wt%
+   Cathode.mass_ratio[0] = 35.0;  // wt%
+//   Cathode.Mat[0].electronic_conductivity = 1.e-9;  // S/cm
+   Cathode.Mat[0].electronic_conductivity = 1.0;  // S/cm
    Cathode.Mat[0].li_ion_conductivity = 0.00001;    // S/cm
    Cathode.Mat[0].grain_size = 1.5;
    Cathode.Mat[0].molecular_weight = 157.76;
@@ -162,7 +168,12 @@ type_Cathode init_Cathode(void)
    Cathode.Mat[0].reduction_potential = 3.4;
    Cathode.Mat[0].valency = 1.0;
 
-   Cathode.mass_ratio[1] = 25.0;
+//   Cathode.mass_ratio[1] = 25.0;  // wt%
+//   Cathode.mass_ratio[1] = 45.503;  // wt%
+//   Cathode.mass_ratio[1] = 65.400;  // wt%
+//   Cathode.mass_ratio[1] = 34.400;  // wt%
+//   Cathode.mass_ratio[1] = 65.503;  // wt%
+   Cathode.mass_ratio[1] = 65.0;  // wt%
    Cathode.Mat[1].electronic_conductivity = 1.e-9;
    Cathode.Mat[1].li_ion_conductivity = 0.012;
    Cathode.Mat[1].grain_size = 2.0;
@@ -171,7 +182,13 @@ type_Cathode init_Cathode(void)
    Cathode.Mat[1].reduction_potential = 0.0;
    Cathode.Mat[1].valency = 0.0;
 
-   Cathode.mass_ratio[2] = 5.0;
+//   Cathode.mass_ratio[2] = 5.0;  // wt%
+//   Cathode.mass_ratio[2] = 0.735;  // wt%
+//   Cathode.mass_ratio[2] = 0.835;  // wt%
+//   Cathode.mass_ratio[2] = 0.835;  // wt%
+//   Cathode.mass_ratio[2] = 1.800;  // wt%
+//   Cathode.mass_ratio[2] = 0.735;  // wt%
+   Cathode.mass_ratio[2] = 2.0;  // wt%
    Cathode.Mat[2].electronic_conductivity = 10.0;
    Cathode.Mat[2].li_ion_conductivity = 0.0;
    Cathode.Mat[2].grain_size = 0.05;
@@ -183,44 +200,7 @@ type_Cathode init_Cathode(void)
    return(Cathode);
 } // init_Cathode(void)
 
-type_Cathode init_Cathode_1(void)
-{
-   type_Cathode Cathode;
-   Cathode.N_mat = 3;  // number of materials in the cathode
-
-   Cathode.mass_ratio[0] = 0.166625;
-   Cathode.Mat[0].electronic_conductivity = 1000.0;
-   Cathode.Mat[0].li_ion_conductivity = 0.0;
-   Cathode.Mat[0].grain_size = 25.0;
-   Cathode.Mat[0].molecular_weight = 12.01;
-   Cathode.Mat[0].density = 2.00;
-   Cathode.Mat[0].reduction_potential = 0.0;
-   Cathode.Mat[0].valency = 0.0;
-
-   Cathode.mass_ratio[1] = 0.369206;
-//   Cathode.mass_ratio[1] = 0.169206;
-   Cathode.Mat[1].electronic_conductivity = 0.0;
-   Cathode.Mat[1].li_ion_conductivity = 0.0005;
-   Cathode.Mat[1].grain_size = 30.0;
-   Cathode.Mat[1].molecular_weight = 81.38;
-   Cathode.Mat[1].density = 5.61;
-   Cathode.Mat[1].reduction_potential = 0.0;
-   Cathode.Mat[1].valency = 0.0;
-
-   Cathode.mass_ratio[2] = 0.464169;
-//   Cathode.mass_ratio[2] = 0.664169;
-   Cathode.Mat[2].electronic_conductivity = 0.0;
-   Cathode.Mat[2].li_ion_conductivity = 0.001;
-   Cathode.Mat[2].grain_size = 50.0;
-   Cathode.Mat[2].molecular_weight = 32.07;
-   Cathode.Mat[2].density = 1.95;
-   Cathode.Mat[2].reduction_potential = 3.0;
-   Cathode.Mat[2].valency = 2.0;
-
-   return(Cathode);
-} // init_Cathode(void)
-
-void conver_to_work_types(type_Cathode Cathode_in, type_work_Cathode* wCathode)
+void convert_to_work_types(type_Cathode Cathode_in, type_work_Cathode* wCathode)
 {
 type_work_Cathode wCath_in;
 int k, mat_type;
@@ -244,18 +224,18 @@ int k, mat_type;
    wCath_in = *wCathode;
    particles_to_volume(wCath_in, wCathode);
 
-//   printf("\n conver_to_work_types:\n");
+//   printf("\n convert_to_work_types:\n");
    for(k=1; k<=wCathode->N_mat; k++) {
      mat_type = 0;
-     if(wCathode->Mat[k].e_cond > 1.e-6) mat_type=mat_type|1;
-     if(wCathode->Mat[k].Li_cond > 1.e-10) mat_type=mat_type|2;
-     if(wCathode->Mat[k].Volt > 1.e-3) mat_type=mat_type|4;
+     if(wCathode->Mat[k].e_cond > 0.1) mat_type=mat_type|1;
+     if(wCathode->Mat[k].Li_cond > 1.e-4) mat_type=mat_type|2; // > 0.1 mS/cm
+     if(wCathode->Mat[k].Volt > 0.1) mat_type=mat_type|4;
      wCathode->Mat[k].Mtype = mat_type;
 
 //     printf("wCathode->Mat[%d].Mtype = %d\n", k,mat_type); 
    }
 
-} // void conver_to_work_types()
+} // void convert_to_work_types()
 
 
 /*************************
@@ -359,8 +339,8 @@ void implicit_cathode(type_work_Cathode Cat)
    if((mtype_kl&1) == 1) Z_CB[k] += Z_kl[k][l];
    if((mtype_kl&2) == 2) Z_SE[k] += Z_kl[k][l];
 
-//   printf("k= %d l= %d mtype_k,l= %d  %d Z_kl( %d %d)= %9.3lf Z_CB( %d)= %9.3lf\n",
-//   k,l, mtype_k,mtype_l, k,l,Z_kl[k][l], k,Z_CB[k]);
+// printf("k= %d l= %d mtype_k,l= %d  %d Z_kl( %d %d)= %9.3lf Z_CB( %d)= %9.3lf Z_SE( %d)= %9.3lf\n",
+// k,l, mtype_k,mtype_l, k,l,Z_kl[k][l], k,Z_CB[k], k,Z_SE[k]);
 
   } // for(l=1; l<=ncat_types; l++)
  } // for(k=1; k<=ncat_types; k++)
