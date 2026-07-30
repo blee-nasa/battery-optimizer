@@ -1,0 +1,47 @@
+.about {
+  display: flex;
+  align-items: stretch;
+  gap: 1.25rem;
+  max-width: 38rem;
+  padding: 1rem;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.topo {
+  flex: 0 0 11rem;
+  align-self: center;
+  width: 11rem;
+  aspect-ratio: 1 / 1;
+  /* --color-text is the light ink used on the dark navbar; the modal is light. */
+  color: var(--color-text-inverted, #1a1a2e);
+}
+
+.blurb {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+}
+
+.contributors {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.version {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

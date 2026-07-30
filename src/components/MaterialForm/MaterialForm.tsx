@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Material, MaterialCategory } from '@types'
-import { Button } from '@components'
+import { Button, Panel } from '@components'
 import styles from './MaterialForm.module.css'
 
 interface MaterialFormProps {
@@ -42,113 +42,115 @@ export const MaterialForm = ({ initial, onSubmit, onCancel }: MaterialFormProps)
   const isActiveMaterial = form.category === 'Active Material'
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <label>
-        Name
-        <input
-          type="text"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          required
-          autoFocus
-        />
-      </label>
+    <Panel className={styles.panel}>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <label>
+          Name
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => set('name', e.target.value)}
+            required
+            autoFocus
+          />
+        </label>
 
-      <label>
-        Category
-        <select
-          value={form.category}
-          onChange={(e) => set('category', e.target.value)}
-        >
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </label>
+        <label>
+          Category
+          <select
+            value={form.category}
+            onChange={(e) => set('category', e.target.value)}
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </label>
 
-      <label>
-        Grain Size (μm)
-        <input
-          type="number"
-          step="any"
-          value={form.grainSize}
-          onChange={(e) => set('grainSize', Number(e.target.value))}
-          required
-        />
-      </label>
+        <label>
+          Grain Size (μm)
+          <input
+            type="number"
+            step="any"
+            value={form.grainSize}
+            onChange={(e) => set('grainSize', Number(e.target.value))}
+            required
+          />
+        </label>
 
-      <label>
-        Density (g/cm³)
-        <input
-          type="number"
-          step="any"
-          value={form.density}
-          onChange={(e) => set('density', Number(e.target.value))}
-          required
-        />
-      </label>
+        <label>
+          Density (g/cm³)
+          <input
+            type="number"
+            step="any"
+            value={form.density}
+            onChange={(e) => set('density', Number(e.target.value))}
+            required
+          />
+        </label>
 
-      <label>
-        Mol. Weight (g/mol)
-        <input
-          type="number"
-          step="any"
-          value={form.molecularWeight}
-          onChange={(e) => set('molecularWeight', Number(e.target.value))}
-          required
-        />
-      </label>
+        <label>
+          Mol. Weight (g/mol)
+          <input
+            type="number"
+            step="any"
+            value={form.molecularWeight}
+            onChange={(e) => set('molecularWeight', Number(e.target.value))}
+            required
+          />
+        </label>
 
-      <label>
-        e⁻ Conductivity (S/cm)
-        <input
-          type="number"
-          step="any"
-          value={form.eConductivity}
-          onChange={(e) => set('eConductivity', Number(e.target.value))}
-          required
-        />
-      </label>
+        <label>
+          e⁻ Conductivity (S/cm)
+          <input
+            type="number"
+            step="any"
+            value={form.eConductivity}
+            onChange={(e) => set('eConductivity', Number(e.target.value))}
+            required
+          />
+        </label>
 
-      <label>
-        Li⁺ Conductivity (S/cm)
-        <input
-          type="number"
-          step="any"
-          value={form.liConductivity}
-          onChange={(e) => set('liConductivity', Number(e.target.value))}
-          required
-        />
-      </label>
+        <label>
+          Li⁺ Conductivity (S/cm)
+          <input
+            type="number"
+            step="any"
+            value={form.liConductivity}
+            onChange={(e) => set('liConductivity', Number(e.target.value))}
+            required
+          />
+        </label>
 
-      {isActiveMaterial && (
-        <>
-          <label>
-            Reduction Potential (V)
-            <input
-              type="number"
-              step="any"
-              value={form.reductionPotential ?? ''}
-              onChange={(e) => set('reductionPotential', Number(e.target.value))}
-            />
-          </label>
+        {isActiveMaterial && (
+          <>
+            <label>
+              Reduction Potential (V)
+              <input
+                type="number"
+                step="any"
+                value={form.reductionPotential ?? ''}
+                onChange={(e) => set('reductionPotential', Number(e.target.value))}
+              />
+            </label>
 
-          <label>
-            Valency
-            <input
-              type="number"
-              step="1"
-              value={form.valency ?? ''}
-              onChange={(e) => set('valency', Number(e.target.value))}
-            />
-          </label>
-        </>
-      )}
+            <label>
+              Valency
+              <input
+                type="number"
+                step="1"
+                value={form.valency ?? ''}
+                onChange={(e) => set('valency', Number(e.target.value))}
+              />
+            </label>
+          </>
+        )}
 
-      <div className={styles.actions}>
-        <Button variant="primary" type="submit">{initial ? 'Update' : 'Add'}</Button>
-        {onCancel && <Button type="button" onClick={onCancel}>Cancel</Button>}
-      </div>
-    </form>
+        <div className={styles.actions}>
+          <Button variant="primary" type="submit">{initial ? 'Update' : 'Add'}</Button>
+          {onCancel && <Button type="button" onClick={onCancel}>Cancel</Button>}
+        </div>
+      </form>
+    </Panel>
   )
 }
