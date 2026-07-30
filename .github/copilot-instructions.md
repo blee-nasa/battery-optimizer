@@ -28,8 +28,13 @@ battery-optimizer/
 
 WASM build (via Docker):
 ```sh
-docker run --rm -v $(pwd)/wasm:/src emscripten/emsdk emcc calculator.c -o /src/out/calculator.js -s EXPORTED_FUNCTIONS="['_calculate']" -s MODULARIZE=1
+npm run wasm:build
 ```
+
+Always go through `wasm/build.sh` rather than invoking `emcc` by hand - it pins
+`emscripten/emsdk` to a specific version (`EMSDK_VERSION`). An unpinned image
+resolves to `:latest` and rewrites `public/calculator.js` with different runtime
+glue even when `calculator.c` has not changed.
 
 Frontend dev server:
 ```sh
