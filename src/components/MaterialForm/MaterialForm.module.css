@@ -1,25 +1,14 @@
-.form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.panel {
   padding: 1rem;
   border: 1px solid var(--color-border, #ccc);
   margin-top: 0;
   margin-bottom: 1rem;
 }
 
-.form label {
+.form {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.form input,
-.form select {
-  padding: 0.3rem 0.4rem;
-  border: 1px solid var(--color-border, #ccc);
-  font-size: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .actions {

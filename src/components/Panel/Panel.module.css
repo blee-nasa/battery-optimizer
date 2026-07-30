@@ -1,0 +1,13 @@
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.panel input,
+.panel select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-border, #ccc);
+  font-size: 0.85rem;
+}
