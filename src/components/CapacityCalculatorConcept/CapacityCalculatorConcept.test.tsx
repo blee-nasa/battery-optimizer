@@ -25,7 +25,7 @@ describe('CapacityCalculatorConcept', () => {
 
   it('displays result after successful calculation', async () => {
     mockCalculate.mockResolvedValue({
-      am_capacity: 176.68,
+      am_capacity: [176.68, -1, -1, -1, -1, -1, -1, -1],
       overall_cathode_capacity: 176.68,
       material_utilization: [100, 0, 0, 0, 0, 0, 0, 0],
       overall_cathode_utilization: 100,

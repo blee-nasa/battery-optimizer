@@ -49,7 +49,7 @@ export const CapacityCalculatorConcept = () => {
       setResult({
         n: nVal,
         molecularWeight: mwVal,
-        capacity: calc.am_capacity.toFixed(2),
+        capacity: calc.am_capacity[0].toFixed(2),
       })
     } catch (err) {
       setError((err as Error).message)

@@ -19,6 +19,10 @@ interface CalcResults {
   optimizedMassRatios?: number[]
 }
 
+// The engine returns a negative capacity for materials it does not treat as active
+// (see Cap_of_Mat in wasm/cathcal_calc.h).
+const formatAmCapacity = (capacity: number) => (capacity < 0 ? '—' : capacity.toFixed(2))
+
 export const OptimizerView = () => {
   const { cathodes } = useCathodes()
   const { materials } = useMaterials()
@@ -76,7 +80,7 @@ export const OptimizerView = () => {
       setCalcResults({
         materials: componentMaterials.map(({ material }, i) => ({
           materialName: material.name,
-          amCapacity: material.valency != null ? result.am_capacity.toFixed(2) : '—',
+          amCapacity: formatAmCapacity(result.am_capacity[i]),
           utilization: result.material_utilization[i].toFixed(1),
         })),
         overallCapacity: result.overall_cathode_capacity.toFixed(2),
@@ -119,9 +123,7 @@ export const OptimizerView = () => {
       setCalcResults({
         materials: componentMaterials.map(({ material }, i) => ({
           materialName: material.name,
-          amCapacity: material.valency != null
-            ? result.calculationResult.am_capacity.toFixed(2)
-            : '—',
+          amCapacity: formatAmCapacity(result.calculationResult.am_capacity[i]),
           utilization: result.calculationResult.material_utilization[i].toFixed(1),
         })),
         overallCapacity: result.calculationResult.overall_cathode_capacity.toFixed(2),

@@ -9,10 +9,13 @@ vi.mock('@utils', () => ({
 
 const mockCalculate = vi.mocked(calculate)
 
+type Slots = [number, number, number, number, number, number, number, number]
+
+// The engine returns a negative capacity for every non-active material.
 const MOCK_RESULT = {
-  am_capacity: 176.68,
+  am_capacity: [176.68, -1, -1, -1, -1, -1, -1, -1] as Slots,
   overall_cathode_capacity: 176.68,
-  material_utilization: [100, 0, 0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number, number, number],
+  material_utilization: [100, 0, 0, 0, 0, 0, 0, 0] as Slots,
   overall_cathode_utilization: 100,
 }
 
@@ -90,6 +93,28 @@ describe('OptimizerView', () => {
       expect(capacityCells.length).toBeGreaterThan(0)
       expect(screen.getAllByText('100.0').length).toBeGreaterThan(0)
     })
+  })
+
+  it('gives each active material its own capacity and dashes the rest', async () => {
+    mockCalculate.mockResolvedValue({
+      ...MOCK_RESULT,
+      // NMC-622 and LiFePO4 are both active; the SE and carbon components are not.
+      am_capacity: [120.5, 88.25, -1, -1, -1, -1, -1, -1] as Slots,
+      material_utilization: [92, 85, 0, 0, 0, 0, 0, 0] as Slots,
+      overall_cathode_capacity: 208.75,
+    })
+    renderView()
+
+    fireEvent.change(screen.getByLabelText('Cathode'), {
+      target: { value: 'seed-complex-cathode' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('120.50')).toBeInTheDocument()
+    })
+    expect(screen.getByText('88.25')).toBeInTheDocument()
+    expect(screen.getAllByText('—')).toHaveLength(4)
   })
 
   it('clears results when cathode selector changes', async () => {

@@ -24,15 +24,18 @@ export interface OptimizeResult {
   calculationResult: CalculationResult
 }
 
+export type MaterialSlots = [number, number, number, number, number, number, number, number]
+
 export interface CalculationResult {
-  am_capacity: number
+  /** Per-material capacity; negative for materials the engine does not treat as active. */
+  am_capacity: MaterialSlots
   overall_cathode_capacity: number
-  material_utilization: [number, number, number, number, number, number, number, number]
+  material_utilization: MaterialSlots
   overall_cathode_utilization: number
 }
 
 const MATERIAL_SLOTS = 8
-const RESULT_DOUBLE_COUNT = 1 + 1 + MATERIAL_SLOTS + 1
+const RESULT_DOUBLE_COUNT = MATERIAL_SLOTS + 1 + MATERIAL_SLOTS + 1
 const RESULT_BYTES = RESULT_DOUBLE_COUNT * Float64Array.BYTES_PER_ELEMENT
 
 // Mirrors the current `type_Material`/`type_Cathode` layout in wasm/calculator.c:
@@ -103,22 +106,23 @@ function writeCathode(
   })
 }
 
+function readSlots(module: CalculatorModule, offset: number): MaterialSlots {
+  return Array.from(
+    { length: MATERIAL_SLOTS },
+    (_, i) => module.HEAPF64[offset + i]
+  ) as MaterialSlots
+}
+
+// Mirrors `CalculationResult` in wasm/cathcal_def.h:
+//   typedef struct { double am_capacity[8]; double overall_cathode_capacity;
+//     double material_utilization[8]; double overall_cathode_utilization; } CalculationResult;
 function readCalculationResult(module: CalculatorModule, resultPtr: number): CalculationResult {
   const offset = resultPtr / Float64Array.BYTES_PER_ELEMENT
   return {
-    am_capacity: module.HEAPF64[offset],
-    overall_cathode_capacity: module.HEAPF64[offset + 1],
-    material_utilization: [
-      module.HEAPF64[offset + 2],
-      module.HEAPF64[offset + 3],
-      module.HEAPF64[offset + 4],
-      module.HEAPF64[offset + 5],
-      module.HEAPF64[offset + 6],
-      module.HEAPF64[offset + 7],
-      module.HEAPF64[offset + 8],
-      module.HEAPF64[offset + 9],
-    ],
-    overall_cathode_utilization: module.HEAPF64[offset + 2 + MATERIAL_SLOTS],
+    am_capacity: readSlots(module, offset),
+    overall_cathode_capacity: module.HEAPF64[offset + MATERIAL_SLOTS],
+    material_utilization: readSlots(module, offset + MATERIAL_SLOTS + 1),
+    overall_cathode_utilization: module.HEAPF64[offset + 2 * MATERIAL_SLOTS + 1],
   }
 }
 

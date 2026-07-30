@@ -10,7 +10,8 @@ function mockScriptInjection(onAppend: (script: Partial<HTMLScriptElement>) => v
 
 // 8 (header) + 8 * 120 (Mat[8], each char[64] + 7 doubles) + 8 * 8 (mass_ratio[8])
 const CATHODE_BYTES = 1032
-const RESULT_BYTES = 88
+// am_capacity[8] + overall_cathode_capacity + material_utilization[8] + overall_cathode_utilization
+const RESULT_BYTES = 144
 
 const sampleMaterial = {
   name: 'LiFePO4',
@@ -39,10 +40,10 @@ function createMockModule() {
   const ccall = vi.fn((_name, _returnType, _argTypes, args) => {
     const resultPtr = Number(args[1])
     const offset = resultPtr / Float64Array.BYTES_PER_ELEMENT
-    HEAPF64[offset] = 123.45
-    HEAPF64[offset + 1] = 120.0
-    HEAPF64.set([90, 80, 70, 60, 50, 40, 30, 20], offset + 2)
-    HEAPF64[offset + 10] = 75.0
+    HEAPF64.set([123.45, 55.5, -1, -1, -1, -1, -1, -1], offset)
+    HEAPF64[offset + 8] = 120.0
+    HEAPF64.set([90, 80, 70, 60, 50, 40, 30, 20], offset + 9)
+    HEAPF64[offset + 17] = 75.0
   })
 
   return { HEAPU8, HEAP32, HEAPF64, _malloc, _free, ccall }
@@ -74,7 +75,7 @@ describe('wasm util', () => {
     expect(module._free).toHaveBeenNthCalledWith(1, 16)
     expect(module._free).toHaveBeenNthCalledWith(2, 16 + CATHODE_BYTES)
     expect(result).toEqual({
-      am_capacity: 123.45,
+      am_capacity: [123.45, 55.5, -1, -1, -1, -1, -1, -1],
       overall_cathode_capacity: 120,
       material_utilization: [90, 80, 70, 60, 50, 40, 30, 20],
       overall_cathode_utilization: 75,
@@ -145,7 +146,7 @@ describe('wasm util', () => {
 
     expect(document.createElement).toHaveBeenCalledWith('script')
     expect(mockScript.src).toContain('calculator.js')
-    expect(result.am_capacity).toBe(123.45)
+    expect(result.am_capacity[0]).toBe(123.45)
   })
 
   it('throws when calculator script fails to load', async () => {
