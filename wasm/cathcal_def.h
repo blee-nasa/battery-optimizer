@@ -57,7 +57,7 @@ typedef struct {
 } type_work_Cathode;
 
 typedef struct {
-    double am_capacity;
+    double am_capacity[8];
     double overall_cathode_capacity;
     double material_utilization[8];
     double overall_cathode_utilization;
@@ -119,6 +119,7 @@ double CF, CF_min, CF_max, CF_min_glb, CF_eps;
 double C_of_AM, C_AM_max, C_of_sys;
 double Util_of_type[6];
 double Util_of_Mat[9];
+double Cap_of_Mat[9];
 double CostF[MAX_WEIGHTS];
 double CostF_max[MAX_WEIGHTS];
 int npar_fit;

@@ -15,10 +15,10 @@ type_work_Cathode wCathode; // working cathode type
     }
 
     if (Cathode_in.N_mat <= 0 || Cathode_in.N_mat > 8) {
-        out_result->am_capacity = -1.0;
         out_result->overall_cathode_capacity = -1.0;
         out_result->overall_cathode_utilization = 0.0;
         for (int i = 0; i < 8; i++) {
+            out_result->am_capacity[i] = -1.0;
             out_result->material_utilization[i] = 0.0;
         }
         return;
@@ -29,8 +29,8 @@ type_work_Cathode wCathode; // working cathode type
 
     for (int i = 0; i < 8; i++) {
         out_result->material_utilization[i] = 100.0*Util_of_Mat[i+1];
+        out_result->am_capacity[i] = Cap_of_Mat[i+1];
     }
-    out_result->am_capacity = C_of_AM;
     out_result->overall_cathode_capacity = C_of_sys;
     out_result->overall_cathode_utilization = Util_of_type[0];
 

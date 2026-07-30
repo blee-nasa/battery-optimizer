@@ -447,6 +447,7 @@ void implicit_cathode(type_work_Cathode Cat)
  nAM_part = 0;
  C_AM = 0.0; C_AM_max = 0.0; gr_mass_AM = 0.0; gr_mass_sys = 0.0;
  for(k=1; k<=ncat_types; k++) {
+  Cap_of_Mat[k] = -1.0; // to show -- in the UI
   mtype_k = Cat.Mat[k].Mtype;
   D = Cat.Mat[k].grain_size;
   Volume = 3.141592/6.0 * D*D*D; // [nm^3]
@@ -459,6 +460,7 @@ void implicit_cathode(type_work_Cathode Cat)
    Cap = Cat.Mat[k].valency * 6.022045E23*1.6021E-19 /(3.6*Cat.Mat[k].gmol);
    C_AM_max += gr_mass*Cap;
    C_AM += gr_mass*Cap*Util_of_type[4];
+   Cap_of_Mat[k] = Cap*Util_of_Mat[k]*Cat.mass_ratio[k]; // gr_mass/gr_mass_AM[k] = 1
    gr_mass_AM += gr_mass;
   }
   gr_mass_sys += gr_mass;
@@ -506,9 +508,8 @@ void get_res(type_work_Cathode wCath, type_Cathode* Cath_out, CalculationResult 
     N_mat = wCath.N_mat;
     for (k = 0; k < N_mat; k++) {
         result->material_utilization[k] = 100.0*Util_of_Mat[k+1];
+        result->am_capacity[k] = Cap_of_Mat[k+1];
     }
-
-    result->am_capacity = C_of_AM;
     result->overall_cathode_capacity = C_of_sys;
     result->overall_cathode_utilization = Util_of_type[0];
 
