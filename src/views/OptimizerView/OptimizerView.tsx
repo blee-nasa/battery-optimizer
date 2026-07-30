@@ -140,7 +140,7 @@ export const OptimizerView = () => {
 
   return (
     <div className={styles.container}>
-      <h2>Cathode Optimizer</h2>
+      <h2>Cathode Calculator</h2>
 
       <div className={styles.controls}>
         <Select
